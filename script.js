@@ -5,40 +5,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         loader.classList.add('hidden');
         animateHero();
-    }, 2400);
+    }, 2200);
 
-    // Hero entrance animations
     function animateHero() {
         const eyebrow = document.querySelector('.hero-eyebrow');
-        const lines = document.querySelectorAll('.hero-title-line');
-        const subtitle = document.querySelector('.hero-subtitle');
-        const actions = document.querySelector('.hero-actions');
+        const title = document.querySelector('.hero-title');
+        const cta = document.querySelector('.hero-cta');
 
-        setTimeout(() => {
-            eyebrow.style.transition = 'opacity 0.8s, transform 0.8s';
-            eyebrow.style.opacity = '1';
-            eyebrow.style.transform = 'translateY(0)';
-        }, 100);
-
-        lines.forEach((line, i) => {
+        [eyebrow, title, cta].forEach((el, i) => {
+            if (!el) return;
             setTimeout(() => {
-                line.style.transition = 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
-                line.style.opacity = '1';
-                line.style.transform = 'translateY(0)';
-            }, 300 + i * 150);
+                el.style.transition = `opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1)`;
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 200 + i * 200);
         });
-
-        setTimeout(() => {
-            subtitle.style.transition = 'opacity 0.8s, transform 0.8s';
-            subtitle.style.opacity = '1';
-            subtitle.style.transform = 'translateY(0)';
-        }, 800);
-
-        setTimeout(() => {
-            actions.style.transition = 'opacity 0.8s, transform 0.8s';
-            actions.style.opacity = '1';
-            actions.style.transform = 'translateY(0)';
-        }, 1000);
     }
 
     // Scroll animations
@@ -49,19 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 observer.unobserve(entry.target);
             }
         });
-    }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-    document.querySelectorAll('[data-animate]:not(.hero-eyebrow):not(.hero-title-line):not(.hero-subtitle):not(.hero-actions)').forEach(el => {
-        observer.observe(el);
-    });
+    document.querySelectorAll('[data-animate]').forEach(el => observer.observe(el));
 
-    // Nav scroll effect
+    // Nav scroll
     const nav = document.getElementById('nav');
-    let lastScroll = 0;
     window.addEventListener('scroll', () => {
-        const scrollY = window.scrollY;
-        nav.classList.toggle('scrolled', scrollY > 80);
-        lastScroll = scrollY;
+        nav.classList.toggle('scrolled', window.scrollY > 10);
     }, { passive: true });
 
     // Mobile menu
@@ -82,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Smooth scroll for anchor links
+    // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', (e) => {
             const target = document.querySelector(anchor.getAttribute('href'));
@@ -93,14 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Parallax on hero (subtle)
-    window.addEventListener('scroll', () => {
-        const hero = document.querySelector('.hero-content');
-        if (!hero) return;
-        const scrollY = window.scrollY;
-        if (scrollY < window.innerHeight) {
-            hero.style.transform = `translateY(${scrollY * 0.3}px)`;
-            hero.style.opacity = 1 - scrollY / window.innerHeight;
-        }
-    }, { passive: true });
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
 });

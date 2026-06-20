@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARES PANTHEON — Engineered for Greatness</title>
+    <title>Ares Pantheon — Where Gods Train</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,35 +14,45 @@
     <!-- Loader -->
     <div class="loader" id="loader">
         <div class="loader-inner">
-            <svg class="loader-logo" viewBox="0 0 100 100" width="60" height="60">
-                <path d="M50 5 C30 5 15 25 15 45 C15 55 20 65 30 72 L35 60 C28 55 25 48 25 42 C25 28 36 15 50 15 C64 15 75 28 75 42 C75 48 72 55 65 60 L70 72 C80 65 85 55 85 45 C85 25 70 5 50 5Z" fill="white"/>
-                <path d="M40 20 L38 35 L50 28 L62 35 L60 20 L65 8 L50 2 L35 8Z" fill="white"/>
-                <path d="M42 45 L50 90 L58 45 C55 47 50 48 50 48 C50 48 45 47 42 45Z" fill="white"/>
-            </svg>
-            <div class="loader-text">ARES PANTHEON</div>
+            <div class="loader-brand">Ares Pantheon</div>
             <div class="loader-bar"><div class="loader-progress"></div></div>
         </div>
+    </div>
+
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <p>Complimentary Shipping on All Orders — <a href="#collection">Shop Now</a></p>
     </div>
 
     <!-- Navigation -->
     <nav class="nav" id="nav">
         <div class="nav-inner">
-            <a href="#" class="nav-logo">
-                <span class="nav-logo-text">ARES PANTHEON</span>
-            </a>
-            <div class="nav-links" id="navLinks">
-                <a href="#heritage" class="nav-link">Heritage</a>
-                <a href="#collection" class="nav-link">Collection</a>
-                <a href="#craft" class="nav-link">Craftsmanship</a>
-                <a href="#philosophy" class="nav-link">Philosophy</a>
-                <a href="#contact" class="nav-link">Contact</a>
-            </div>
-            <div class="nav-right">
-                <a href="#collection" class="nav-cta">Explore</a>
+            <div class="nav-left">
                 <button class="nav-menu-btn" id="menuBtn" aria-label="Menu">
                     <span></span>
                     <span></span>
+                    <span></span>
                 </button>
+                <div class="nav-links">
+                    <a href="#collection" class="nav-link">Collections</a>
+                    <a href="#editorial" class="nav-link">Editorial</a>
+                    <a href="#craft" class="nav-link">Craft</a>
+                    <a href="#world" class="nav-link">World of Ares</a>
+                </div>
+            </div>
+            <a href="#" class="nav-logo">
+                <span class="nav-logo-text">Ares Pantheon</span>
+            </a>
+            <div class="nav-right">
+                <a href="#" class="nav-icon" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </a>
+                <a href="#" class="nav-icon" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </a>
+                <a href="#" class="nav-icon" aria-label="Cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </a>
             </div>
         </div>
     </nav>
@@ -50,221 +60,196 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
         <div class="mobile-menu-inner">
-            <a href="#heritage" class="mobile-link">Heritage</a>
-            <a href="#collection" class="mobile-link">Collection</a>
-            <a href="#craft" class="mobile-link">Craftsmanship</a>
-            <a href="#philosophy" class="mobile-link">Philosophy</a>
+            <a href="#collection" class="mobile-link">Collections</a>
+            <a href="#editorial" class="mobile-link">Editorial</a>
+            <a href="#craft" class="mobile-link">Craft</a>
+            <a href="#world" class="mobile-link">World of Ares</a>
             <a href="#contact" class="mobile-link">Contact</a>
         </div>
     </div>
 
-    <!-- Hero Section -->
+    <!-- Hero — Full Bleed Campaign Image -->
     <section class="hero" id="hero">
-        <div class="hero-bg">
-            <div class="hero-gradient"></div>
+        <div class="hero-image">
+            <img src="assets/images/hero-beach-group.jpg" alt="Ares Pantheon Summer Collection">
         </div>
+        <div class="hero-overlay"></div>
         <div class="hero-content">
-            <div class="hero-eyebrow" data-animate>The New Standard</div>
-            <h1 class="hero-title" data-animate>
-                <span class="hero-title-line">Engineered</span>
-                <span class="hero-title-line">for <em>Greatness</em></span>
-            </h1>
-            <p class="hero-subtitle" data-animate>Where ancient warrior spirit meets modern performance engineering. Every thread, every stitch — precision without compromise.</p>
-            <div class="hero-actions" data-animate>
-                <a href="#collection" class="btn btn-primary">Discover the Collection</a>
-                <a href="#heritage" class="btn btn-ghost">Our Story</a>
-            </div>
-        </div>
-        <div class="hero-scroll">
-            <div class="hero-scroll-line"></div>
-            <span>Scroll</span>
+            <span class="hero-eyebrow">Summer 2026</span>
+            <h1 class="hero-title">The Pantheon<br>Collection</h1>
+            <a href="#collection" class="hero-cta">Discover</a>
         </div>
     </section>
 
-    <!-- Heritage Section -->
-    <section class="section section-heritage" id="heritage">
+    <!-- Editorial Duo — LV Style Two-Column -->
+    <section class="editorial-duo" data-animate>
+        <div class="duo-item">
+            <div class="duo-image">
+                <img src="assets/images/product-compression-front.jpg" alt="Ares Compression Tee">
+            </div>
+            <div class="duo-text">
+                <span class="duo-category">Compression</span>
+                <h3 class="duo-title">Phalanx Tee</h3>
+                <a href="#" class="duo-link">Shop Now</a>
+            </div>
+        </div>
+        <div class="duo-item">
+            <div class="duo-image">
+                <img src="assets/images/product-longsleeve.jpg" alt="Ares Long Sleeve Performance">
+            </div>
+            <div class="duo-text">
+                <span class="duo-category">Performance</span>
+                <h3 class="duo-title">Athena Long Sleeve</h3>
+                <a href="#" class="duo-link">Shop Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Full-Width Campaign Banner -->
+    <section class="campaign-banner" data-animate>
+        <div class="campaign-image">
+            <img src="assets/images/hero-motorcycle.jpg" alt="Ares Pantheon — Beyond the Gym">
+        </div>
+        <div class="campaign-overlay"></div>
+        <div class="campaign-content">
+            <span class="campaign-eyebrow">Beyond the Gym</span>
+            <h2 class="campaign-title">Worn by<br>Warriors</h2>
+            <p class="campaign-subtitle">Performance apparel that moves with your life — from the iron to the open road.</p>
+            <a href="#collection" class="campaign-cta">Explore</a>
+        </div>
+    </section>
+
+    <!-- Collection Grid — LV Style -->
+    <section class="section" id="collection">
         <div class="container">
-            <div class="section-header" data-animate>
-                <span class="section-eyebrow">001 — Heritage</span>
-                <h2 class="section-title">Born from<br><em>Discipline</em></h2>
+            <div class="collection-header" data-animate>
+                <h2 class="collection-title">The Collection</h2>
+                <div class="collection-filters">
+                    <button class="filter-btn active">All</button>
+                    <button class="filter-btn">Compression</button>
+                    <button class="filter-btn">Oversized</button>
+                    <button class="filter-btn">Long Sleeve</button>
+                </div>
             </div>
-            <div class="heritage-grid">
-                <div class="heritage-text" data-animate>
-                    <p class="text-large">ARES PANTHEON is not just a brand. It is a philosophy forged in the fires of relentless pursuit — where every rep is a battle, every set a victory.</p>
-                    <p>We drew our name from the god of war himself. The warriors of the Pantheon didn't seek comfort. They sought excellence. Our garments carry that same uncompromising standard — engineered for those who refuse to settle.</p>
-                    <div class="heritage-stats">
-                        <div class="stat">
-                            <span class="stat-number">300+</span>
-                            <span class="stat-label">Hours of R&D per garment</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number">47</span>
-                            <span class="stat-label">Countries worldwide</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number">∞</span>
-                            <span class="stat-label">Commitment to craft</span>
-                        </div>
+            <div class="product-grid" data-animate>
+                <div class="product-item">
+                    <div class="product-image">
+                        <img src="assets/images/product-compression-front.jpg" alt="Phalanx Compression Tee — Obsidian" loading="lazy">
+                        <div class="product-quickview">Quick View</div>
+                    </div>
+                    <div class="product-info">
+                        <h3>Phalanx Compression Tee</h3>
+                        <span class="product-color">Obsidian</span>
+                        <span class="product-price">$89</span>
                     </div>
                 </div>
-                <div class="heritage-image" data-animate>
-                    <div class="image-frame">
-                        <img src="assets/images/6DE3EDFD-818A-4F85-B519-B0EE465D19D5.PNG" alt="ARES PANTHEON Performance Tee — Front View" loading="lazy">
-                        <div class="image-overlay"></div>
+                <div class="product-item">
+                    <div class="product-image">
+                        <img src="assets/images/product-compression-back.jpg" alt="Phalanx Compression Tee — Kanji Edition" loading="lazy">
+                        <div class="product-quickview">Quick View</div>
+                    </div>
+                    <div class="product-info">
+                        <h3>Phalanx Tee — 神に守られている</h3>
+                        <span class="product-color">Obsidian / Kanji</span>
+                        <span class="product-price">$109</span>
+                    </div>
+                </div>
+                <div class="product-item">
+                    <div class="product-image">
+                        <img src="assets/images/product-longsleeve.jpg" alt="Athena Long Sleeve — Obsidian" loading="lazy">
+                        <div class="product-quickview">Quick View</div>
+                    </div>
+                    <div class="product-info">
+                        <h3>Athena Long Sleeve</h3>
+                        <span class="product-color">Obsidian</span>
+                        <span class="product-price">$119</span>
+                    </div>
+                </div>
+                <div class="product-item">
+                    <div class="product-image">
+                        <img src="assets/images/product-gymrat.jpg" alt="GYMRAT Oversized Tee" loading="lazy">
+                        <div class="product-quickview">Quick View</div>
+                    </div>
+                    <div class="product-info">
+                        <h3>GYMRAT Oversized Tee</h3>
+                        <span class="product-color">Obsidian</span>
+                        <span class="product-price">$79</span>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Marquee -->
-    <div class="marquee-section">
-        <div class="marquee">
-            <div class="marquee-track">
-                <span>Performance</span>
-                <span class="marquee-dot">◆</span>
-                <span>Discipline</span>
-                <span class="marquee-dot">◆</span>
-                <span>Excellence</span>
-                <span class="marquee-dot">◆</span>
-                <span>Strength</span>
-                <span class="marquee-dot">◆</span>
-                <span>Legacy</span>
-                <span class="marquee-dot">◆</span>
-                <span>Performance</span>
-                <span class="marquee-dot">◆</span>
-                <span>Discipline</span>
-                <span class="marquee-dot">◆</span>
-                <span>Excellence</span>
-                <span class="marquee-dot">◆</span>
-                <span>Strength</span>
-                <span class="marquee-dot">◆</span>
-                <span>Legacy</span>
-                <span class="marquee-dot">◆</span>
+    <!-- Editorial Section — Lifestyle -->
+    <section class="editorial-section" id="editorial" data-animate>
+        <div class="editorial-layout">
+            <div class="editorial-image">
+                <img src="assets/images/hero-beach-squad.jpg" alt="Ares Pantheon Team" loading="lazy">
+            </div>
+            <div class="editorial-content">
+                <span class="editorial-eyebrow">The Community</span>
+                <h2 class="editorial-title">Built for<br>the <em>Few</em></h2>
+                <p>Ares Pantheon is not mass-produced. Every piece is a statement — a commitment to the relentless pursuit of the best version of yourself. Worn by athletes, creators, and warriors who refuse to settle.</p>
+                <a href="#" class="editorial-link">Discover Our Story</a>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Collection Section -->
-    <section class="section section-collection" id="collection">
+    <!-- Craftsmanship Strip -->
+    <section class="craft-section" id="craft">
         <div class="container">
-            <div class="section-header" data-animate>
-                <span class="section-eyebrow">002 — Collection</span>
-                <h2 class="section-title">The Warrior<br><em>Series</em></h2>
-            </div>
-            <div class="collection-showcase">
-                <div class="product-card product-card-hero" data-animate>
-                    <div class="product-card-image">
-                        <img src="assets/images/6DE3EDFD-818A-4F85-B519-B0EE465D19D5.PNG" alt="ARES PANTHEON Compression Tee — Front" loading="lazy">
-                        <div class="product-card-overlay">
-                            <span class="product-tag">Signature</span>
-                        </div>
-                    </div>
-                    <div class="product-card-info">
-                        <span class="product-category">Compression Series</span>
-                        <h3 class="product-name">Phalanx Tee — Obsidian</h3>
-                        <p class="product-desc">Second-skin compression fit. Four-way stretch fabric with antimicrobial finish. The warrior helmet crest on chest — a mark of those who show up.</p>
-                        <div class="product-bottom">
-                            <span class="product-price">$89</span>
-                            <a href="#" class="btn btn-small">Add to Cart</a>
-                        </div>
-                    </div>
+            <h2 class="craft-heading" data-animate>The Craft</h2>
+            <div class="craft-strip" data-animate>
+                <div class="craft-item">
+                    <div class="craft-icon">01</div>
+                    <h3>4-Way Stretch</h3>
+                    <p>Nylon-elastane blend for unrestricted movement</p>
                 </div>
-                <div class="product-card" data-animate>
-                    <div class="product-card-image">
-                        <img src="assets/images/BD70A524-0409-4DF4-830E-82CB4A7D2333.PNG" alt="ARES PANTHEON Compression Tee — Back" loading="lazy">
-                        <div class="product-card-overlay">
-                            <span class="product-tag">Limited</span>
-                        </div>
-                    </div>
-                    <div class="product-card-info">
-                        <span class="product-category">Compression Series</span>
-                        <h3 class="product-name">Phalanx Tee — 神に守られている</h3>
-                        <p class="product-desc">"Protected by the Gods." Japanese Kanji edition with the warrior crest. A fusion of Eastern discipline and warrior resolve.</p>
-                        <div class="product-bottom">
-                            <span class="product-price">$109</span>
-                            <a href="#" class="btn btn-small">Add to Cart</a>
-                        </div>
-                    </div>
+                <div class="craft-item">
+                    <div class="craft-icon">02</div>
+                    <h3>Compression Fit</h3>
+                    <p>Graduated zones mapped to muscle groups</p>
+                </div>
+                <div class="craft-item">
+                    <div class="craft-icon">03</div>
+                    <h3>Antimicrobial</h3>
+                    <p>Silver-ion threads eliminate odor-causing bacteria</p>
+                </div>
+                <div class="craft-item">
+                    <div class="craft-icon">04</div>
+                    <h3>Flatlock Seams</h3>
+                    <p>Zero-chafe construction for all-day comfort</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Full-width Image Break -->
-    <section class="section-fullimage">
-        <div class="fullimage-inner">
-            <img src="assets/images/BD70A524-0409-4DF4-830E-82CB4A7D2333.PNG" alt="ARES PANTHEON back detail" loading="lazy">
-            <div class="fullimage-overlay"></div>
-            <div class="fullimage-text" data-animate>
-                <span class="section-eyebrow">Kanji Edition</span>
-                <h2>神に守られている</h2>
-                <p>Protected by the Gods</p>
+    <!-- World of Ares — Full Bleed -->
+    <section class="world-section" id="world">
+        <div class="world-banner" data-animate>
+            <div class="world-image">
+                <img src="assets/images/hero-motorcycle.jpg" alt="World of Ares Pantheon" loading="lazy">
+            </div>
+            <div class="world-overlay"></div>
+            <div class="world-content">
+                <span class="world-eyebrow">Enter</span>
+                <h2 class="world-title">The World<br>of Ares</h2>
+                <a href="#" class="world-cta">Explore</a>
             </div>
         </div>
     </section>
 
-    <!-- Craftsmanship Section -->
-    <section class="section section-craft" id="craft">
+    <!-- Newsletter -->
+    <section class="newsletter-section" data-animate>
         <div class="container">
-            <div class="section-header" data-animate>
-                <span class="section-eyebrow">003 — Craftsmanship</span>
-                <h2 class="section-title">Precision in<br><em>Every Fiber</em></h2>
-            </div>
-            <div class="craft-grid">
-                <div class="craft-item" data-animate>
-                    <div class="craft-number">01</div>
-                    <h3 class="craft-title">4-Way Stretch Fabric</h3>
-                    <p>Engineered with a proprietary blend of nylon and elastane, delivering unrestricted movement in every plane of motion.</p>
+            <div class="newsletter-inner">
+                <div class="newsletter-text">
+                    <h2>Stay Connected</h2>
+                    <p>Be the first to know about new collections, exclusive drops, and the world of Ares Pantheon.</p>
                 </div>
-                <div class="craft-item" data-animate>
-                    <div class="craft-number">02</div>
-                    <h3 class="craft-title">Compression Architecture</h3>
-                    <p>Graduated compression zones mapped to muscle groups. Supports blood flow, reduces fatigue, accelerates recovery.</p>
-                </div>
-                <div class="craft-item" data-animate>
-                    <div class="craft-number">03</div>
-                    <h3 class="craft-title">Antimicrobial Finish</h3>
-                    <p>Silver-ion infused threads eliminate 99.9% of odor-causing bacteria. Train harder, stay fresh.</p>
-                </div>
-                <div class="craft-item" data-animate>
-                    <div class="craft-number">04</div>
-                    <h3 class="craft-title">Flatlock Stitching</h3>
-                    <p>Zero-chafe seams that sit flush against skin. No irritation, no distraction — only performance.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Philosophy Section -->
-    <section class="section section-philosophy" id="philosophy">
-        <div class="container">
-            <div class="philosophy-layout">
-                <div class="philosophy-left" data-animate>
-                    <span class="section-eyebrow">004 — Philosophy</span>
-                    <h2 class="section-title">Not for<br><em>Everyone</em></h2>
-                </div>
-                <div class="philosophy-right" data-animate>
-                    <p class="text-large">ARES PANTHEON is not mass-produced. It is not fast fashion. Each piece is a statement — a commitment to the relentless pursuit of the best version of yourself.</p>
-                    <p>We believe that what you wear to train is armor. It should command respect, demand effort, and remind you why you started. The warrior helmet is not a logo. It is a covenant.</p>
-                    <blockquote class="philosophy-quote">
-                        <p>"Come back with your shield — or on it."</p>
-                        <cite>— Ancient Warriors</cite>
-                    </blockquote>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="section section-cta">
-        <div class="container">
-            <div class="cta-inner" data-animate>
-                <h2 class="cta-title">Join the<br><em>Phalanx</em></h2>
-                <p class="cta-text">Be the first to access limited drops, warrior-only content, and exclusive collections.</p>
-                <form class="cta-form" onsubmit="event.preventDefault()">
-                    <input type="email" placeholder="Your email address" class="cta-input" required>
-                    <button type="submit" class="btn btn-primary">Enlist</button>
+                <form class="newsletter-form" onsubmit="event.preventDefault()">
+                    <input type="email" placeholder="Email address" required>
+                    <button type="submit">Subscribe</button>
                 </form>
             </div>
         </div>
@@ -273,41 +258,42 @@
     <!-- Footer -->
     <footer class="footer" id="contact">
         <div class="container">
-            <div class="footer-top">
-                <div class="footer-brand">
-                    <span class="footer-logo">ARES PANTHEON</span>
-                    <p class="footer-tagline">Engineered for Greatness</p>
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>Help</h4>
+                    <a href="#">FAQ</a>
+                    <a href="#">Shipping & Returns</a>
+                    <a href="#">Sizing Guide</a>
+                    <a href="#">Contact Us</a>
                 </div>
-                <div class="footer-links-grid">
-                    <div class="footer-col">
-                        <h4>Collection</h4>
-                        <a href="#">Compression</a>
-                        <a href="#">Joggers</a>
-                        <a href="#">Accessories</a>
-                        <a href="#">Limited Drops</a>
-                    </div>
-                    <div class="footer-col">
-                        <h4>Brand</h4>
-                        <a href="#">Our Story</a>
-                        <a href="#">Craftsmanship</a>
-                        <a href="#">Athletes</a>
-                        <a href="#">Journal</a>
-                    </div>
-                    <div class="footer-col">
-                        <h4>Support</h4>
-                        <a href="#">Sizing Guide</a>
-                        <a href="#">Shipping</a>
-                        <a href="#">Returns</a>
-                        <a href="#">Contact</a>
-                    </div>
+                <div class="footer-col">
+                    <h4>Collections</h4>
+                    <a href="#">Compression</a>
+                    <a href="#">Oversized</a>
+                    <a href="#">Long Sleeve</a>
+                    <a href="#">Accessories</a>
+                </div>
+                <div class="footer-col">
+                    <h4>The House</h4>
+                    <a href="#">Our Story</a>
+                    <a href="#">Craftsmanship</a>
+                    <a href="#">Athletes</a>
+                    <a href="#">Journal</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Follow Us</h4>
+                    <a href="#">Instagram</a>
+                    <a href="#">TikTok</a>
+                    <a href="#">YouTube</a>
+                    <a href="#">X (Twitter)</a>
                 </div>
             </div>
             <div class="footer-bottom">
-                <span>&copy; 2026 ARES PANTHEON. All rights reserved.</span>
-                <div class="footer-social">
-                    <a href="#" aria-label="Instagram">IG</a>
-                    <a href="#" aria-label="Twitter">X</a>
-                    <a href="#" aria-label="TikTok">TK</a>
+                <span class="footer-logo-text">Ares Pantheon</span>
+                <span class="footer-copy">&copy; 2026 Ares Pantheon. All rights reserved.</span>
+                <div class="footer-legal">
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
                 </div>
             </div>
         </div>
