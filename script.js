@@ -162,6 +162,90 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = '';
     }
 
+    // Drag-to-close gesture (touch + mouse)
+    let dragStartX = null;
+    let dragStartY = null;
+    let isDragging = false;
+    let isHorizontalDrag = null;
+
+    function onDragStart(x, y) {
+        dragStartX = x;
+        dragStartY = y;
+        isDragging = true;
+        isHorizontalDrag = null;
+    }
+
+    function onDragMove(x, y) {
+        if (!isDragging) return;
+        const dx = x - dragStartX;
+        const dy = y - dragStartY;
+
+        // Lock direction on first meaningful move
+        if (isHorizontalDrag === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+            isHorizontalDrag = Math.abs(dx) > Math.abs(dy);
+        }
+
+        if (!isHorizontalDrag) return;
+
+        // Only allow dragging right (positive dx)
+        if (dx <= 0) {
+            modal.style.transform = '';
+            return;
+        }
+
+        modal.classList.add('dragging');
+        modal.style.transform = `translateX(${dx}px)`;
+
+        // Fade backdrop proportionally
+        const modalWidth = modal.offsetWidth;
+        const progress = Math.min(dx / modalWidth, 1);
+        backdrop.style.opacity = 1 - progress;
+    }
+
+    function onDragEnd(x) {
+        if (!isDragging) return;
+        isDragging = false;
+        modal.classList.remove('dragging');
+        modal.style.transform = '';
+        backdrop.style.opacity = '';
+
+        if (!isHorizontalDrag) return;
+
+        const dx = x - dragStartX;
+        const threshold = modal.offsetWidth * 0.35;
+        if (dx > threshold) {
+            closeModal();
+        }
+    }
+
+    // Touch events
+    modal.addEventListener('touchstart', (e) => {
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    modal.addEventListener('touchmove', (e) => {
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+        onDragEnd(e.changedTouches[0].clientX);
+    });
+
+    // Mouse events (desktop drag)
+    modal.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button, a, input, select, .size-btn, .modal-thumb')) return;
+        onDragStart(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        onDragMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        onDragEnd(e.clientX);
+    });
+
     document.querySelectorAll('[data-product]').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.slide-prev') || e.target.closest('.slide-next') || e.target.closest('.slide-dot')) return;
