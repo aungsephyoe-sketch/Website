@@ -1184,13 +1184,48 @@ em { font-style: italic; }
     flex: 1;
     overflow: hidden;
     background: var(--cream);
+    position: relative;
+    cursor: zoom-in;
 }
 
 .modal-main-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.15s ease;
+    transform-origin: center center;
+}
+
+.modal-main-image img.zoomed {
+    transform: scale(1.7);
+    transition: transform 0.15s ease;
+}
+
+.modal-slide-prev,
+.modal-slide-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.85);
+    border: none;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+}
+
+.modal-slide-prev { left: 12px; }
+.modal-slide-next { right: 12px; }
+
+.modal-main-image:hover .modal-slide-prev,
+.modal-main-image:hover .modal-slide-next {
+    opacity: 1;
 }
 
 .modal-thumbs {

@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const backdrop = document.getElementById('modalBackdrop');
     const modalClose = document.getElementById('modalClose');
     const modalMainImg = document.getElementById('modalMainImg');
+    const modalMainImageWrap = document.getElementById('modalMainImageWrap');
     const modalThumbs = document.getElementById('modalThumbs');
     const modalName = document.getElementById('modalName');
     const modalPrice = document.getElementById('modalPrice');
@@ -81,9 +82,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalDesc = document.getElementById('modalDesc');
     const modalFeatures = document.getElementById('modalFeatures');
     const modalCartBtn = document.getElementById('modalCartBtn');
+    const modalSlidePrev = document.getElementById('modalSlidePrev');
+    const modalSlideNext = document.getElementById('modalSlideNext');
+
+    let modalImages = [];
+    let modalCurrentIndex = 0;
+
+    function goToModalSlide(index) {
+        modalCurrentIndex = (index + modalImages.length) % modalImages.length;
+        modalMainImg.style.opacity = '0';
+        setTimeout(() => {
+            modalMainImg.src = modalImages[modalCurrentIndex];
+            modalMainImg.style.opacity = '1';
+        }, 150);
+        document.querySelectorAll('.modal-thumb').forEach((t, i) => {
+            t.classList.toggle('active', i === modalCurrentIndex);
+        });
+    }
+
+    modalSlidePrev.addEventListener('click', (e) => { e.stopPropagation(); goToModalSlide(modalCurrentIndex - 1); });
+    modalSlideNext.addEventListener('click', (e) => { e.stopPropagation(); goToModalSlide(modalCurrentIndex + 1); });
+
+    // Modal image zoom
+    modalMainImageWrap.addEventListener('mousemove', (e) => {
+        if (!modalMainImg.classList.contains('zoomed')) return;
+        const rect = modalMainImageWrap.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        modalMainImg.style.transformOrigin = `${x}% ${y}%`;
+    });
+    modalMainImageWrap.addEventListener('mouseenter', () => modalMainImg.classList.add('zoomed'));
+    modalMainImageWrap.addEventListener('mouseleave', () => {
+        modalMainImg.classList.remove('zoomed');
+        modalMainImg.style.transformOrigin = 'center center';
+    });
 
     function openModal(product) {
-        const images = JSON.parse(product.dataset.images);
+        modalImages = JSON.parse(product.dataset.images);
+        modalCurrentIndex = 0;
         const details = [
             product.dataset.detail1,
             product.dataset.detail2,
@@ -98,24 +134,22 @@ document.addEventListener('DOMContentLoaded', () => {
         modalDesc.textContent = product.dataset.desc;
 
         // Main image
-        modalMainImg.src = images[0];
+        modalMainImg.src = modalImages[0];
         modalMainImg.alt = product.dataset.name;
+        modalMainImg.style.opacity = '1';
+
+        // Show/hide arrows based on image count
+        const hasMultiple = modalImages.length > 1;
+        modalSlidePrev.style.display = hasMultiple ? '' : 'none';
+        modalSlideNext.style.display = hasMultiple ? '' : 'none';
 
         // Thumbnails
         modalThumbs.innerHTML = '';
-        images.forEach((src, i) => {
+        modalImages.forEach((src, i) => {
             const thumb = document.createElement('div');
             thumb.className = 'modal-thumb' + (i === 0 ? ' active' : '');
             thumb.innerHTML = `<img src="${src}" alt="${product.dataset.name} ${i + 1}" loading="lazy">`;
-            thumb.addEventListener('click', () => {
-                modalMainImg.style.opacity = '0';
-                setTimeout(() => {
-                    modalMainImg.src = src;
-                    modalMainImg.style.opacity = '1';
-                }, 200);
-                document.querySelectorAll('.modal-thumb').forEach(t => t.classList.remove('active'));
-                thumb.classList.add('active');
-            });
+            thumb.addEventListener('click', () => goToModalSlide(i));
             modalThumbs.appendChild(thumb);
         });
 
@@ -244,10 +278,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Arrow key navigation for hovered slider
+    // Arrow key navigation
     document.addEventListener('keydown', (e) => {
         if (modal.classList.contains('active')) {
             if (e.key === 'Escape') closeModal();
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goToModalSlide(modalCurrentIndex - 1); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); goToModalSlide(modalCurrentIndex + 1); }
             return;
         }
         if (!activeSlider) return;

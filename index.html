@@ -378,8 +378,14 @@
         <div class="modal-inner">
             <!-- Left: Image Gallery -->
             <div class="modal-gallery">
-                <div class="modal-main-image">
+                <div class="modal-main-image" id="modalMainImageWrap">
                     <img id="modalMainImg" src="" alt="">
+                    <button class="modal-slide-prev" id="modalSlidePrev" aria-label="Previous image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button class="modal-slide-next" id="modalSlideNext" aria-label="Next image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
                 </div>
                 <div class="modal-thumbs" id="modalThumbs"></div>
             </div>
