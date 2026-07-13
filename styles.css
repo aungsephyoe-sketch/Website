@@ -1140,10 +1140,10 @@ em { font-style: italic; }
 }
 
 .modal-close {
-    position: absolute;
+    position: fixed;
     top: 20px;
     right: 24px;
-    z-index: 10;
+    z-index: 2010;
     background: none;
     border: none;
     cursor: pointer;
@@ -1457,28 +1457,80 @@ em { font-style: italic; }
 @media (max-width: 768px) {
     .product-modal {
         width: 100vw;
-        top: auto;
-        height: 92vh;
-        border-radius: 20px 20px 0 0;
-        transform: translateY(100%);
+        top: 0;
+        height: 100dvh;
+        border-radius: 0;
+        transform: translateX(100%);
+        overflow-y: auto;
     }
 
     .product-modal.active {
-        transform: translateY(0);
+        transform: translateX(0);
     }
 
     .modal-inner {
         grid-template-columns: 1fr;
+        min-height: 100dvh;
     }
 
     .modal-gallery {
         position: relative;
-        height: 55vw;
-        min-height: 260px;
+        height: 70vw;
+        min-height: 320px;
+        max-height: 480px;
+        padding: 0;
+        gap: 0;
+    }
+
+    .modal-main-image {
+        height: 100%;
+        flex: none;
+    }
+
+    .modal-main-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+    }
+
+    /* Always show slide arrows on mobile */
+    .modal-slide-prev,
+    .modal-slide-next {
+        opacity: 1;
+        width: 36px;
+        height: 36px;
+        background: rgba(255,255,255,0.9);
+    }
+
+    .modal-thumbs {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        justify-content: center;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 0 12px;
+        gap: 6px;
+    }
+
+    .modal-thumb {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+    }
+
+    .modal-details {
+        padding: 24px 20px 40px;
     }
 
     .modal-close {
         top: 12px;
         right: 16px;
+        background: rgba(255,255,255,0.85);
+        backdrop-filter: blur(4px);
+        border-radius: 50%;
+        z-index: 20;
     }
 }
