@@ -207,6 +207,22 @@ em { font-style: italic; }
     opacity: 0.5;
 }
 
+.cart-count {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--black);
+    color: var(--white);
+    font-size: 0.6rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .nav-menu-btn {
     display: none;
     flex-direction: column;

@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-product]').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.slide-prev') || e.target.closest('.slide-next') || e.target.closest('.slide-dot')) return;
+            currentProduct = item;
             openModal(item);
         });
         item.style.cursor = 'pointer';
@@ -267,12 +268,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Add to cart
+    let currentProduct = null;
     modalCartBtn.addEventListener('click', () => {
         const selected = document.querySelector('.size-btn.selected');
         if (!selected) {
             document.querySelectorAll('.size-btn').forEach(b => b.style.borderColor = '#c0392b');
             setTimeout(() => document.querySelectorAll('.size-btn').forEach(b => b.style.borderColor = ''), 800);
             return;
+        }
+        if (currentProduct) {
+            addToCart({
+                name: currentProduct.dataset.name,
+                price: parseFloat(currentProduct.dataset.price.replace('$', '')),
+                size: selected.textContent,
+                color: currentProduct.dataset.color,
+                image: JSON.parse(currentProduct.dataset.images)[0],
+            });
         }
         modalCartBtn.classList.add('added');
         modalCartBtn.querySelector('.cart-btn-text').textContent = 'Added to Cart ✓';
