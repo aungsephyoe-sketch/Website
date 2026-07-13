@@ -103,19 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSlidePrev.addEventListener('click', (e) => { e.stopPropagation(); goToModalSlide(modalCurrentIndex - 1); });
     modalSlideNext.addEventListener('click', (e) => { e.stopPropagation(); goToModalSlide(modalCurrentIndex + 1); });
 
-    // Modal image zoom
-    modalMainImageWrap.addEventListener('mousemove', (e) => {
-        if (!modalMainImg.classList.contains('zoomed')) return;
-        const rect = modalMainImageWrap.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        modalMainImg.style.transformOrigin = `${x}% ${y}%`;
-    });
-    modalMainImageWrap.addEventListener('mouseenter', () => modalMainImg.classList.add('zoomed'));
-    modalMainImageWrap.addEventListener('mouseleave', () => {
-        modalMainImg.classList.remove('zoomed');
-        modalMainImg.style.transformOrigin = 'center center';
-    });
 
     function openModal(product) {
         modalImages = JSON.parse(product.dataset.images);
@@ -237,45 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         slider.addEventListener('mouseenter', () => { activeSlider = { goTo, slides }; });
         slider.addEventListener('mouseleave', () => { activeSlider = null; });
 
-        // Zoom on hover
-        slider.addEventListener('mousemove', (e) => {
-            const img = slides[current];
-            if (!img) return;
-            const rect = slider.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            img.style.transformOrigin = `${x}% ${y}%`;
-        });
-
-        slider.addEventListener('mouseenter', () => {
-            slides[current].classList.add('zoomed');
-        });
-
-        slider.addEventListener('mouseleave', () => {
-            slides.forEach(s => {
-                s.classList.remove('zoomed');
-                s.style.transformOrigin = 'center center';
-            });
-        });
-    });
-
-    // Also apply zoom to non-slider product images
-    document.querySelectorAll('.product-item .product-image:not(.product-slider)').forEach(imgWrap => {
-        const img = imgWrap.querySelector('img');
-        if (!img) return;
-
-        imgWrap.addEventListener('mousemove', (e) => {
-            const rect = imgWrap.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            img.style.transformOrigin = `${x}% ${y}%`;
-        });
-
-        imgWrap.addEventListener('mouseenter', () => img.classList.add('zoomed'));
-        imgWrap.addEventListener('mouseleave', () => {
-            img.classList.remove('zoomed');
-            img.style.transformOrigin = 'center center';
-        });
     });
 
     // Arrow key navigation
