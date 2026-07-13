@@ -69,6 +69,114 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Product Modal
+    const modal = document.getElementById('productModal');
+    const backdrop = document.getElementById('modalBackdrop');
+    const modalClose = document.getElementById('modalClose');
+    const modalMainImg = document.getElementById('modalMainImg');
+    const modalThumbs = document.getElementById('modalThumbs');
+    const modalName = document.getElementById('modalName');
+    const modalPrice = document.getElementById('modalPrice');
+    const modalColor = document.getElementById('modalColor');
+    const modalDesc = document.getElementById('modalDesc');
+    const modalFeatures = document.getElementById('modalFeatures');
+    const modalCartBtn = document.getElementById('modalCartBtn');
+
+    function openModal(product) {
+        const images = JSON.parse(product.dataset.images);
+        const details = [
+            product.dataset.detail1,
+            product.dataset.detail2,
+            product.dataset.detail3,
+            product.dataset.detail4,
+        ].filter(Boolean);
+
+        // Populate
+        modalName.textContent = product.dataset.name;
+        modalPrice.textContent = product.dataset.price;
+        modalColor.textContent = product.dataset.color;
+        modalDesc.textContent = product.dataset.desc;
+
+        // Main image
+        modalMainImg.src = images[0];
+        modalMainImg.alt = product.dataset.name;
+
+        // Thumbnails
+        modalThumbs.innerHTML = '';
+        images.forEach((src, i) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'modal-thumb' + (i === 0 ? ' active' : '');
+            thumb.innerHTML = `<img src="${src}" alt="${product.dataset.name} ${i + 1}" loading="lazy">`;
+            thumb.addEventListener('click', () => {
+                modalMainImg.style.opacity = '0';
+                setTimeout(() => {
+                    modalMainImg.src = src;
+                    modalMainImg.style.opacity = '1';
+                }, 200);
+                document.querySelectorAll('.modal-thumb').forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+            });
+            modalThumbs.appendChild(thumb);
+        });
+
+        // Features
+        modalFeatures.innerHTML = details.map(d =>
+            `<div class="modal-feature">${d}</div>`
+        ).join('');
+
+        // Reset size + cart
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+        modalCartBtn.classList.remove('added');
+        modalCartBtn.querySelector('.cart-btn-text').textContent = 'Add to Cart';
+
+        // Show
+        modal.classList.add('active');
+        backdrop.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.remove('active');
+        backdrop.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('[data-product]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.slide-prev') || e.target.closest('.slide-next') || e.target.closest('.slide-dot')) return;
+            openModal(item);
+        });
+        item.style.cursor = 'pointer';
+    });
+
+    modalClose.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // Size selection
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+
+    // Add to cart
+    modalCartBtn.addEventListener('click', () => {
+        const selected = document.querySelector('.size-btn.selected');
+        if (!selected) {
+            document.querySelectorAll('.size-btn').forEach(b => b.style.borderColor = '#c0392b');
+            setTimeout(() => document.querySelectorAll('.size-btn').forEach(b => b.style.borderColor = ''), 800);
+            return;
+        }
+        modalCartBtn.classList.add('added');
+        modalCartBtn.querySelector('.cart-btn-text').textContent = 'Added to Cart ✓';
+        setTimeout(() => {
+            modalCartBtn.classList.remove('added');
+            modalCartBtn.querySelector('.cart-btn-text').textContent = 'Add to Cart';
+        }, 2500);
+    });
+
     // Product sliders
     document.querySelectorAll('.product-slider').forEach(slider => {
         const slides = slider.querySelectorAll('.slide');
