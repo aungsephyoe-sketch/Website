@@ -178,6 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Product sliders
+    let activeSlider = null;
+
     document.querySelectorAll('.product-slider').forEach(slider => {
         const slides = slider.querySelectorAll('.slide');
         const dots = slider.querySelectorAll('.slide-dot');
@@ -196,6 +198,61 @@ document.addEventListener('DOMContentLoaded', () => {
         prev.addEventListener('click', (e) => { e.stopPropagation(); goTo(current - 1); });
         next.addEventListener('click', (e) => { e.stopPropagation(); goTo(current + 1); });
         dots.forEach((dot, i) => dot.addEventListener('click', (e) => { e.stopPropagation(); goTo(i); }));
+
+        // Track focused slider for arrow key navigation
+        slider.addEventListener('mouseenter', () => { activeSlider = { goTo, slides }; });
+        slider.addEventListener('mouseleave', () => { activeSlider = null; });
+
+        // Zoom on hover
+        slider.addEventListener('mousemove', (e) => {
+            const img = slides[current];
+            if (!img) return;
+            const rect = slider.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            img.style.transformOrigin = `${x}% ${y}%`;
+        });
+
+        slider.addEventListener('mouseenter', () => {
+            slides[current].classList.add('zoomed');
+        });
+
+        slider.addEventListener('mouseleave', () => {
+            slides.forEach(s => {
+                s.classList.remove('zoomed');
+                s.style.transformOrigin = 'center center';
+            });
+        });
+    });
+
+    // Also apply zoom to non-slider product images
+    document.querySelectorAll('.product-item .product-image:not(.product-slider)').forEach(imgWrap => {
+        const img = imgWrap.querySelector('img');
+        if (!img) return;
+
+        imgWrap.addEventListener('mousemove', (e) => {
+            const rect = imgWrap.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            img.style.transformOrigin = `${x}% ${y}%`;
+        });
+
+        imgWrap.addEventListener('mouseenter', () => img.classList.add('zoomed'));
+        imgWrap.addEventListener('mouseleave', () => {
+            img.classList.remove('zoomed');
+            img.style.transformOrigin = 'center center';
+        });
+    });
+
+    // Arrow key navigation for hovered slider
+    document.addEventListener('keydown', (e) => {
+        if (modal.classList.contains('active')) {
+            if (e.key === 'Escape') closeModal();
+            return;
+        }
+        if (!activeSlider) return;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); activeSlider.goTo(activeSlider.slides.length - 1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); activeSlider.goTo(1); }
     });
 
     // Filter buttons
