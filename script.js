@@ -69,6 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Product sliders
+    document.querySelectorAll('.product-slider').forEach(slider => {
+        const slides = slider.querySelectorAll('.slide');
+        const dots = slider.querySelectorAll('.slide-dot');
+        const prev = slider.querySelector('.slide-prev');
+        const next = slider.querySelector('.slide-next');
+        let current = 0;
+
+        function goTo(index) {
+            slides[current].classList.remove('active');
+            dots[current].classList.remove('active');
+            current = (index + slides.length) % slides.length;
+            slides[current].classList.add('active');
+            dots[current].classList.add('active');
+        }
+
+        prev.addEventListener('click', (e) => { e.stopPropagation(); goTo(current - 1); });
+        next.addEventListener('click', (e) => { e.stopPropagation(); goTo(current + 1); });
+        dots.forEach((dot, i) => dot.addEventListener('click', (e) => { e.stopPropagation(); goTo(i); }));
+    });
+
     // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
