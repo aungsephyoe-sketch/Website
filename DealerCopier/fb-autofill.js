@@ -15,6 +15,27 @@
     });
     document.body.appendChild(btn);
 
+    // Diagnostic button — shows all aria-labels so we know what Facebook calls each field
+    const diagBtn = document.createElement('button');
+    diagBtn.id = 'dm-diag';
+    diagBtn.innerHTML = '🔍 Show Field Names';
+    Object.assign(diagBtn.style, {
+        position: 'fixed', bottom: '70px', right: '24px', zIndex: '2147483647',
+        background: '#888', color: '#fff', border: 'none', borderRadius: '24px',
+        padding: '10px 18px', fontSize: '13px', fontWeight: '700',
+        cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        fontFamily: 'Helvetica Neue, Arial, sans-serif'
+    });
+    document.body.appendChild(diagBtn);
+
+    diagBtn.addEventListener('click', () => {
+        const labels = [...document.querySelectorAll('[aria-label]')]
+            .map(el => `${el.tagName}[${el.getAttribute('role') || ''}]: "${el.getAttribute('aria-label')}"`)
+            .filter((v, i, a) => a.indexOf(v) === i)
+            .slice(0, 60);
+        alert('FIELD NAMES ON PAGE:\n\n' + labels.join('\n'));
+    });
+
     btn.addEventListener('click', () => {
         chrome.storage.local.get('dealerListing', ({ dealerListing }) => {
             if (!dealerListing) {
@@ -37,7 +58,6 @@
         return null;
     }
 
-    // Set value on a React input/textarea — only works on real form elements
     function setReactValue(el, value) {
         try {
             const tag = el.tagName;
@@ -50,16 +70,17 @@
             }
             el.dispatchEvent(new Event('input',  { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
-        } catch(e) {}
+        } catch(e) { console.warn('[DM] setReactValue error', e); }
     }
 
-    // Find ANY element whose aria-label or placeholder contains the hint
     function findByLabel(hints) {
         for (const hint of hints) {
             const lower = hint.toLowerCase();
+            // Exact match first
             for (const el of document.querySelectorAll('[aria-label]')) {
                 if (el.getAttribute('aria-label').toLowerCase() === lower) return el;
             }
+            // Partial match
             for (const el of document.querySelectorAll('[aria-label]')) {
                 if (el.getAttribute('aria-label').toLowerCase().includes(lower)) return el;
             }
@@ -70,7 +91,6 @@
         return null;
     }
 
-    // Click an option from an open dropdown list
     async function pickOption(value) {
         const lower = value.toLowerCase().trim();
         const opt = await waitFor(() => {
@@ -85,7 +105,6 @@
 
         if (opt) { opt.scrollIntoView({ block: 'nearest' }); opt.click(); await sleep(600); return true; }
 
-        // Broader scan
         for (const el of document.querySelectorAll('li, [role="option"], [role="menuitem"]')) {
             if (el.textContent.trim().toLowerCase().includes(lower)) {
                 el.scrollIntoView({ block: 'nearest' }); el.click(); await sleep(500); return true;
@@ -101,7 +120,6 @@
         el.click(); el.focus();
         await sleep(150);
         setReactValue(el, value);
-        // Also try execCommand for React
         try { document.execCommand('selectAll', false, null); document.execCommand('insertText', false, value); } catch(e) {}
         await sleep(200);
         return true;
@@ -110,7 +128,6 @@
     async function fillDropdown(hints, value) {
         if (!value) return false;
 
-        // Try native <select> first
         for (const hint of hints) {
             for (const sel of document.querySelectorAll('select')) {
                 const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
@@ -125,11 +142,10 @@
             }
         }
 
-        // Find trigger
         const field = findByLabel(hints);
-        if (!field) { console.warn('[DM] No field found for:', hints); return false; }
+        if (!field) { console.warn('[DM] No field:', hints); return false; }
 
-        console.log('[DM] Found field for', hints[0], ':', field.tagName, JSON.stringify(field.getAttribute('aria-label')));
+        console.log('[DM]', hints[0], '→', field.tagName, `"${field.getAttribute('aria-label')}"`);
 
         field.scrollIntoView({ block: 'center' });
         await sleep(300);
@@ -137,7 +153,6 @@
         field.focus();
         await sleep(600);
 
-        // If it's a text input, type to filter
         if (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA' ||
             field.getAttribute('role') === 'combobox') {
             setReactValue(field, value);
@@ -145,10 +160,8 @@
             await sleep(800);
         }
 
-        const picked = await pickOption(value);
-        if (picked) return true;
+        if (await pickOption(value)) return true;
 
-        // Try clicking a parent [role=button] if field itself wasn't the trigger
         const parent = field.closest('[role="button"]') || field.closest('[aria-haspopup]') || field.parentElement;
         if (parent && parent !== field) {
             parent.click();
@@ -188,21 +201,12 @@
         return 'SUV';
     }
 
-    // Dump all aria-labels on the page to console so we know exactly what Facebook uses
-    function dumpLabels() {
-        const labels = [...document.querySelectorAll('[aria-label]')]
-            .map(el => `${el.tagName}[role=${el.getAttribute('role')}]: "${el.getAttribute('aria-label')}"`)
-            .filter((v, i, a) => a.indexOf(v) === i);
-        console.log('[DM] All aria-labels on page:\n' + labels.join('\n'));
-    }
-
     function status(msg) { btn.innerHTML = msg; }
 
     async function autofill(d) {
         btn.disabled = true;
         window.scrollTo(0, 0);
         await sleep(800);
-        dumpLabels(); // log all labels so we can debug
 
         status('⏳ Vehicle type…');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type of vehicle', 'type'], 'Car');
