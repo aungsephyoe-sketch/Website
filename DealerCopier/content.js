@@ -4,7 +4,7 @@ function extractListing() {
     const data = {
         year: '', make: '', model: '', trim: '',
         price: '', mileage: '', color: '', vin: '',
-        description: '', images: [], url: window.location.href
+        description: '', images: [], videos: [], url: window.location.href
     };
 
     // ── Strategy 1: Schema.org structured data ──
@@ -60,7 +60,6 @@ function extractListing() {
     ]).replace(/[^\d$,.]/g, '') || '';
 
     if (!data.mileage) {
-        // Try labeled DOM elements first
         const raw = text([
             '[class*="mileage"]', '[class*="miles"]', '[data-mileage]',
             '[class*="odometer"]', '[itemprop="mileageFromOdometer"]'
@@ -71,7 +70,6 @@ function extractListing() {
         }
     }
     if (!data.mileage) {
-        // Scan for mileage label context in page text
         const bodyText = document.body.innerText;
         const patterns = [
             /(?:mileage|odometer|miles)[:\s]*([0-9]{1,3}(?:,[0-9]{3})*)\s*(?:mi|miles)?/i,
@@ -91,7 +89,6 @@ function extractListing() {
             '[class*="vin"]', '[data-vin]', '[itemprop="vehicleIdentificationNumber"]'
         ]);
         data.vin = raw.replace(/[^A-HJ-NPR-Z0-9]/gi, '').substring(0, 17) || '';
-        // Also scan visible text for 17-char VIN pattern
         if (!data.vin) {
             const match = document.body.innerText.match(/\bVIN[:\s#]*([A-HJ-NPR-Z0-9]{17})\b/i);
             if (match) data.vin = match[1];
@@ -118,7 +115,6 @@ function extractListing() {
                 if (title.toLowerCase().includes(m.toLowerCase())) { data.make = m; break; }
             }
         }
-        // Model is what comes after year + make in the title
         if (data.year && data.make && !data.model) {
             const after = title.replace(data.year, '').replace(new RegExp(data.make, 'i'), '').trim();
             data.model = after.split(/\s{2,}|\||-/)[0].trim();
@@ -142,19 +138,52 @@ function extractListing() {
     }
     data.images = [...new Set(data.images)].slice(0, 20);
 
-    // ── Strategy 6: Description fallback ──
+    // ── Strategy 6: Trim fallback ──
+    if (!data.trim) {
+        data.trim = text([
+            '[class*="trim"]', '[data-trim]', '[class*="Trim"]',
+            '[class*="submodel"]', '[class*="sub-model"]', '[class*="package"]'
+        ]);
+    }
+    if (!data.trim) {
+        const bodyText = document.body.innerText;
+        const m = bodyText.match(/(?:trim|package|edition)[:\s]+([A-Za-z0-9][\w\s]{1,30}?)(?:\n|,|\|)/i);
+        if (m) data.trim = m[1].trim();
+    }
+
+    // ── Strategy 7: Description (strip HTML tags) ──
+    function stripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.innerText || tmp.textContent || '';
+    }
     if (!data.description) {
-        data.description = text([
+        const raw = text([
             '[class*="description"]', '[class*="comments"]',
             '[class*="details"] p', '[itemprop="description"]',
             '.vehicle-description', '#description'
         ]);
+        data.description = stripHtml(raw);
+    } else {
+        data.description = stripHtml(data.description);
     }
+
+    // ── Strategy 8: Collect videos ──
+    document.querySelectorAll('video').forEach(v => {
+        const src = v.src || v.querySelector('source')?.src;
+        if (src && src.startsWith('http') && !data.videos.includes(src)) data.videos.push(src);
+    });
+    document.querySelectorAll('source[src*=".mp4"], source[src*=".mov"], source[src*=".webm"]').forEach(s => {
+        if (s.src && !data.videos.includes(s.src)) data.videos.push(s.src);
+    });
+    document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"], iframe[data-src*="youtube"]').forEach(f => {
+        const src = f.src || f.dataset.src;
+        if (src && !data.videos.includes(src)) data.videos.push(src);
+    });
 
     return data;
 }
 
-// Listen for popup requesting data
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'GET_LISTING') {
         sendResponse(extractListing());
