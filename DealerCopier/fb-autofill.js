@@ -1,175 +1,196 @@
-// Facebook Marketplace vehicle auto-fill content script
+// Facebook Marketplace vehicle auto-fill
 
 (function () {
-    if (document.getElementById('dealer-autofill-btn')) return;
+    if (document.getElementById('dm-fab')) return;
 
+    // Floating button
     const btn = document.createElement('button');
-    btn.id = 'dealer-autofill-btn';
-    btn.textContent = '🚗 Insert Vehicle Data';
+    btn.id = 'dm-fab';
+    btn.innerHTML = '🚗 Insert Vehicle Data';
     Object.assign(btn.style, {
-        position: 'fixed', top: '80px', right: '16px', zIndex: '99999',
-        background: '#1877f2', color: '#fff', border: 'none', borderRadius: '8px',
-        padding: '12px 18px', fontSize: '14px', fontWeight: '700',
-        cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.3)'
+        position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
+        background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
+        padding: '14px 22px', fontSize: '15px', fontWeight: '800',
+        cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        fontFamily: 'Helvetica Neue, Arial, sans-serif'
     });
     document.body.appendChild(btn);
 
     btn.addEventListener('click', () => {
         chrome.storage.local.get('dealerListing', ({ dealerListing }) => {
-            if (!dealerListing) { alert('No vehicle data found. Go to a dealer listing first.'); return; }
+            if (!dealerListing) {
+                alert('No vehicle data found.\nGo to a dealer listing page, click the extension, then click "Auto-Fill Marketplace".');
+                return;
+            }
             autofill(dealerListing);
         });
     });
 
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    function setNativeValue(el, value) {
-        const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-        const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-        if (nativeSetter) nativeSetter.call(el, value);
+    async function reactType(el, value) {
+        if (!el || !value) return;
+        el.focus();
+        await sleep(100);
+        el.select?.();
+        document.execCommand('selectAll', false);
+        document.execCommand('insertText', false, String(value));
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
+        await sleep(200);
     }
 
-    function findInput(hints) {
+    function findField(hints) {
         for (const hint of hints) {
-            const el = document.querySelector(
-                `input[aria-label*="${hint}" i], textarea[aria-label*="${hint}" i],
-                 input[placeholder*="${hint}" i], textarea[placeholder*="${hint}" i]`
+            const direct = document.querySelector(
+                `input[aria-label="${hint}"], textarea[aria-label="${hint}"],` +
+                `input[placeholder="${hint}"], textarea[placeholder="${hint}"]`
             );
-            if (el) return el;
+            if (direct) return direct;
+            for (const el of document.querySelectorAll('input, textarea')) {
+                const lbl = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').toLowerCase();
+                if (lbl === hint.toLowerCase()) return el;
+            }
+            for (const label of document.querySelectorAll('label')) {
+                if (label.textContent.trim().toLowerCase() === hint.toLowerCase()) {
+                    const forId = label.getAttribute('for');
+                    const found = forId ? document.getElementById(forId) : label.querySelector('input, select, textarea');
+                    if (found) return found;
+                }
+            }
         }
         return null;
     }
 
-    async function typeInto(hints, value) {
-        if (!value) return false;
-        const el = findInput(hints);
-        if (!el) return false;
-        el.focus();
-        el.click();
-        setNativeValue(el, value);
-        await sleep(700);
-        const opts = document.querySelectorAll('[role="option"], [role="listitem"], li');
-        for (const opt of opts) {
-            if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
+    async function selectDropdown(hints, optionText) {
+        if (!optionText) return false;
+
+        // Try native <select>
+        for (const hint of hints) {
+            for (const sel of document.querySelectorAll('select')) {
+                const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
+                if (lbl.includes(hint.toLowerCase())) {
+                    for (const opt of sel.options) {
+                        if (opt.text.toLowerCase().includes(optionText.toLowerCase())) {
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            await sleep(300);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Custom React dropdown
+        let trigger = null;
+        for (const hint of hints) {
+            trigger = document.querySelector(`[aria-label*="${hint}" i]`);
+            if (!trigger) {
+                for (const el of document.querySelectorAll('[role="button"], [role="combobox"], div[tabindex]')) {
+                    const txt = (el.getAttribute('aria-label') || el.textContent || '').toLowerCase();
+                    if (txt.includes(hint.toLowerCase())) { trigger = el; break; }
+                }
+            }
+            if (trigger) break;
+        }
+
+        if (!trigger) return false;
+        trigger.click();
+        await sleep(800);
+
+        const allOpts = document.querySelectorAll('[role="option"], [role="menuitem"], [role="listitem"], li[tabindex]');
+        for (const opt of allOpts) {
+            if (opt.textContent.trim().toLowerCase().includes(optionText.toLowerCase())) {
                 opt.click();
                 await sleep(500);
                 return true;
             }
         }
-        return true;
+        return false;
     }
 
-    async function clickDropdownOption(hints, value) {
-        const el = findInput(hints);
-        if (el) {
-            el.focus();
-            el.click();
-            await sleep(800);
-        } else {
-            const allEls = document.querySelectorAll('[aria-label], [placeholder], [role="button"]');
-            for (const e of allEls) {
-                const label = (e.getAttribute('aria-label') || e.getAttribute('placeholder') || '').toLowerCase();
-                if (hints.some(h => label.includes(h.toLowerCase()))) {
-                    e.click();
-                    await sleep(800);
-                    break;
+    async function tickCheckbox(hints) {
+        for (const hint of hints) {
+            for (const cb of document.querySelectorAll('input[type="checkbox"]')) {
+                const label = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
+                const txt = (label?.textContent || cb.getAttribute('aria-label') || '').toLowerCase();
+                if (txt.includes(hint.toLowerCase())) {
+                    if (!cb.checked) cb.click();
+                    await sleep(200);
+                    return true;
+                }
+            }
+            for (const cb of document.querySelectorAll('[role="checkbox"]')) {
+                const txt = (cb.getAttribute('aria-label') || cb.textContent || '').toLowerCase();
+                if (txt.includes(hint.toLowerCase())) {
+                    if (cb.getAttribute('aria-checked') !== 'true') cb.click();
+                    await sleep(200);
+                    return true;
                 }
             }
         }
-        const opts = document.querySelectorAll('[role="option"], [role="listitem"], li');
-        for (const opt of opts) {
-            if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
-                opt.click();
-                await sleep(400);
-                return true;
-            }
-        }
         return false;
     }
 
-    async function checkCheckbox(hints) {
-        for (const cb of document.querySelectorAll('input[type="checkbox"]')) {
-            const label = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
-            const text = (label?.textContent || cb.getAttribute('aria-label') || '').toLowerCase();
-            if (hints.some(h => text.includes(h.toLowerCase()))) {
-                if (!cb.checked) cb.click();
-                await sleep(300);
-                return true;
-            }
-        }
-        for (const cb of document.querySelectorAll('[role="checkbox"]')) {
-            const text = (cb.getAttribute('aria-label') || cb.textContent || '').toLowerCase();
-            if (hints.some(h => text.includes(h.toLowerCase()))) {
-                if (cb.getAttribute('aria-checked') !== 'true') cb.click();
-                await sleep(300);
-                return true;
-            }
-        }
-        return false;
+    function guessBodyStyle(model) {
+        const m = (model || '').toLowerCase();
+        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|qx[0-9]|gx|lx|rx|cx-[59]|rav4|cr-v|hrv|tucson|santa fe|equinox|blazer|bronco/.test(m)) return 'SUV';
+        if (/silverado|f-150|f150|ram 1500|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan/.test(m)) return 'Truck';
+        if (/camry|accord|civic|corolla|altima|sentra|malibu|impala|fusion|sonata|elantra|optima|jetta|passat|model 3|model s/.test(m)) return 'Sedan';
+        if (/mustang|camaro|challenger|corvette/.test(m)) return 'Coupe';
+        if (/odyssey|sienna|pacifica|caravan|sedona|carnival/.test(m)) return 'Minivan';
+        if (/convertible|cabriolet/.test(m)) return 'Convertible';
+        return '';
     }
 
     async function autofill(d) {
-        btn.textContent = '⏳ Filling…';
+        btn.innerHTML = '⏳ Filling…';
         btn.disabled = true;
         window.scrollTo(0, 0);
-        await sleep(500);
+        await sleep(600);
 
-        await typeInto(['Year', 'Model year'], d.year);
+        await selectDropdown(['Year', 'Model year'], d.year);
         await sleep(400);
 
-        await typeInto(['Make', 'Brand'], d.make);
+        await selectDropdown(['Make', 'Brand'], d.make);
         await sleep(400);
 
-        await typeInto(['Model'], d.model);
+        await selectDropdown(['Model'], d.model);
         await sleep(400);
 
-        const mileageEl = findInput(['Mileage', 'Miles', 'Odometer']);
-        if (mileageEl) { setNativeValue(mileageEl, (d.mileage || '').replace(/[^\d]/g, '')); await sleep(300); }
+        const priceEl = findField(['Price', 'Asking price', 'List price']);
+        if (priceEl) await reactType(priceEl, (d.price || '').replace(/[^\d.]/g, ''));
 
-        const priceEl = findInput(['Price', 'Asking price']);
-        if (priceEl) { setNativeValue(priceEl, (d.price || '').replace(/[^\d.]/g, '')); await sleep(300); }
+        const mileageEl = findField(['Mileage', 'Miles', 'Odometer']);
+        if (mileageEl) await reactType(mileageEl, (d.mileage || '').replace(/[^\d]/g, ''));
 
-        await typeInto(['Exterior color', 'Exterior', 'Color'], d.color);
+        await selectDropdown(['Exterior color', 'Color'], d.color);
         await sleep(400);
 
-        await typeInto(['Interior color', 'Interior'], d.color);
+        await selectDropdown(['Interior color'], d.color);
         await sleep(400);
 
-        // Vehicle condition - always Very good
-        await clickDropdownOption(['Condition', 'Vehicle condition'], 'Very good');
+        const bodyStyle = guessBodyStyle(d.model);
+        if (bodyStyle) { await selectDropdown(['Body style', 'Body type', 'Type'], bodyStyle); await sleep(400); }
+
+        await selectDropdown(['Condition', 'Vehicle condition'], 'Very good');
         await sleep(400);
 
-        // Fuel type - always Gasoline
-        await clickDropdownOption(['Fuel', 'Fuel type'], 'Gasoline');
+        await selectDropdown(['Fuel', 'Fuel type'], 'Gasoline');
         await sleep(400);
 
-        // Body style - guess from model name
-        const modelLower = (d.model || '').toLowerCase();
-        let bodyStyle = '';
-        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|qx|gx|lx|rx/.test(modelLower)) bodyStyle = 'SUV';
-        else if (/silverado|f-150|f150|ram|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan/.test(modelLower)) bodyStyle = 'Truck';
-        else if (/camry|accord|civic|corolla|altima|sentra|malibu|impala|fusion|sonata|elantra|optima|jetta|passat/.test(modelLower)) bodyStyle = 'Sedan';
-        else if (/coupe|mustang|camaro|challenger/.test(modelLower)) bodyStyle = 'Coupe';
-        else if (/van|odyssey|sienna|pacifica|caravan/.test(modelLower)) bodyStyle = 'Minivan';
-        else if (/convertible|cabriolet/.test(modelLower)) bodyStyle = 'Convertible';
-        if (bodyStyle) { await clickDropdownOption(['Body style', 'Body type', 'Type'], bodyStyle); await sleep(400); }
+        const descEl = findField(['Description', 'Tell buyers', 'Additional details']);
+        if (descEl) await reactType(descEl, d.description || '');
 
-        // Description
-        const descEl = findInput(['Description', 'Tell buyers']);
-        if (descEl) { setNativeValue(descEl, d.description || ''); await sleep(300); }
+        await tickCheckbox(['clean title', 'Clean title', 'title is clean']);
 
-        // Clean title checkbox - always check
-        await checkCheckbox(['clean title', 'Clean title', 'title is clean']);
-        await sleep(300);
-
-        btn.textContent = '✅ Done!';
+        btn.innerHTML = '✅ Done! Scroll up to review';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = '🚗 Insert Vehicle Data';
+            btn.innerHTML = '🚗 Insert Vehicle Data';
             btn.style.background = '#1877f2';
             btn.disabled = false;
-        }, 3000);
+        }, 4000);
     }
 })();

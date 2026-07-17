@@ -18,7 +18,7 @@ function extractListing() {
                     data.year   = data.year   || String(item.modelDate || item.vehicleModelDate || item.productionDate || '');
                     data.make   = data.make   || (item.brand?.name || item.brand || item.manufacturer || '');
                     data.model  = data.model  || (item.model || item.name || '');
-                    data.trim   = data.trim   || (item.vehicleConfiguration || item.vehicleInteriorType || '');
+                    data.trim   = data.trim   || (item.vehicleConfiguration || '');
                     data.color  = data.color  || (item.color || item.vehicleInteriorColor || '');
                     data.vin    = data.vin    || (item.vehicleIdentificationNumber || item.vin || '');
                     data.mileage = data.mileage || String(item.mileageFromOdometer?.value || item.mileageFromOdometer || '');
@@ -47,8 +47,10 @@ function extractListing() {
     // ── Strategy 3: Common DOM patterns ──
     const text = (selectors) => {
         for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el && el.textContent.trim()) return el.textContent.trim();
+            try {
+                const el = document.querySelector(sel);
+                if (el && el.textContent.trim()) return el.textContent.trim();
+            } catch(e) {}
         }
         return '';
     };
@@ -65,14 +67,12 @@ function extractListing() {
             '[class*="odometer"]', '[itemprop="mileageFromOdometer"]'
         ]);
         const rawNum = parseInt(raw.replace(/[^\d]/g, ''), 10);
-        if (rawNum >= 100 && rawNum <= 500000) {
-            data.mileage = raw.replace(/[^\d,]/g, '');
-        }
+        if (rawNum >= 100 && rawNum <= 500000) data.mileage = raw.replace(/[^\d,]/g, '');
     }
     if (!data.mileage) {
         const bodyText = document.body.innerText;
         const patterns = [
-            /(?:mileage|odometer|miles)[:\s]*([0-9]{1,3}(?:,[0-9]{3})*)\s*(?:mi|miles)?/i,
+            /(?:mileage|odometer)[:\s]*([0-9]{1,3}(?:,[0-9]{3})*)/i,
             /([0-9]{1,3}(?:,[0-9]{3})+)\s*miles?\b/i
         ];
         for (const pat of patterns) {
@@ -85,9 +85,7 @@ function extractListing() {
     }
 
     if (!data.vin) {
-        const raw = text([
-            '[class*="vin"]', '[data-vin]', '[itemprop="vehicleIdentificationNumber"]'
-        ]);
+        const raw = text(['[class*="vin"]', '[data-vin]', '[itemprop="vehicleIdentificationNumber"]']);
         data.vin = raw.replace(/[^A-HJ-NPR-Z0-9]/gi, '').substring(0, 17) || '';
         if (!data.vin) {
             const match = document.body.innerText.match(/\bVIN[:\s#]*([A-HJ-NPR-Z0-9]{17})\b/i);
@@ -100,34 +98,71 @@ function extractListing() {
         '[class*="color"]', '[data-color]'
     ]);
 
-    // ── Strategy 4: Parse the page title / H1 for year/make/model/trim ──
-    const title = document.querySelector('h1')?.textContent || document.title || '';
-    if (title && (!data.year || !data.make || !data.model)) {
-        const yearMatch = title.match(/\b(19|20)\d{2}\b/);
-        if (yearMatch && !data.year) data.year = yearMatch[0];
+    // ── Strategy 4: Parse title/H1 for year/make/model ──
+    const makes = ['Toyota','Honda','Ford','Chevrolet','Chevy','Nissan','Hyundai','Kia',
+        'BMW','Mercedes','Audi','Volkswagen','VW','Subaru','Mazda','Jeep','Ram',
+        'Dodge','Chrysler','Buick','GMC','Cadillac','Lincoln','Acura','Infiniti',
+        'Lexus','Volvo','Porsche','Land Rover','Tesla','Mitsubishi','Genesis'];
 
-        const makes = ['Toyota','Honda','Ford','Chevrolet','Chevy','Nissan','Hyundai','Kia',
-            'BMW','Mercedes','Audi','Volkswagen','VW','Subaru','Mazda','Jeep','Ram',
-            'Dodge','Chrysler','Buick','GMC','Cadillac','Lincoln','Acura','Infiniti',
-            'Lexus','Volvo','Porsche','Land Rover','Tesla','Mitsubishi','Genesis'];
+    const h1 = document.querySelector('h1')?.textContent?.trim() || '';
+    const pageTitle = document.title || '';
+
+    for (const src of [h1, pageTitle]) {
+        if (!src) continue;
+        if (!data.year) {
+            const m = src.match(/\b(19|20)\d{2}\b/);
+            if (m) data.year = m[0];
+        }
         if (!data.make) {
-            for (const m of makes) {
-                if (title.toLowerCase().includes(m.toLowerCase())) { data.make = m; break; }
+            for (const mk of makes) {
+                if (src.toLowerCase().includes(mk.toLowerCase())) { data.make = mk; break; }
             }
         }
-        // Model + trim are what come after year + make in the title
-        const afterYearMake = title.replace(data.year, '').replace(new RegExp(data.make, 'i'), '').trim();
-        const titleWords = afterYearMake.split(/\s+/);
-        if (!data.model && titleWords.length) {
-            data.model = titleWords[0];
+        if (data.year && data.make && !data.model) {
+            const afterYearMake = src
+                .replace(data.year, '')
+                .replace(new RegExp(data.make, 'i'), '')
+                .trim()
+                .replace(/^[\s\-|]+/, '');
+            if (afterYearMake) data.model = afterYearMake.split(/\s+/)[0];
         }
-        // Remaining words are the trim (e.g. PREMIUM LUXURY, Sport, Limited)
-        if (!data.trim && titleWords.length > 1) {
-            data.trim = titleWords.slice(1).join(' ').replace(/\b\w/g, c => c.toUpperCase());
+        if (data.year && data.make && data.model) break;
+    }
+
+    // ── Strategy 5: Trim from URL slug ──
+    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
+    if (!data.trim && data.model) {
+        const slug = window.location.pathname.toLowerCase();
+        const modelSlug = data.model.toLowerCase();
+        const modelIdx = slug.indexOf(modelSlug);
+        if (modelIdx > -1) {
+            const afterModel = slug.slice(modelIdx + modelSlug.length).replace(/^[-/]+/, '');
+            const words = afterModel.split('-');
+            const noiseWords = ['headup','head','display','blind','spot','assist','navigation',
+                'panor','carrollton','dallas','houston','austin','tx','ca','fl','id','used','new',
+                'certified','pre','owned','detail','vehicle','listing','inventory','awd','4wd',
+                '2wd','fwd','rwd','v6','v8','v4','l4','turbo','hybrid','electric'];
+            const trimWords = [];
+            for (const w of words) {
+                if (noiseWords.includes(w) || /^\d{4,}$/.test(w)) break;
+                trimWords.push(w);
+                if (trimWords.length >= 3) break;
+            }
+            if (trimWords.length) {
+                data.trim = trimWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            }
         }
     }
 
-    // ── Strategy 5: Collect images from gallery ──
+    // ── Strategy 6: Trim from DOM ──
+    if (!data.trim) {
+        data.trim = text([
+            '[class*="trim"]', '[data-trim]', '[class*="Trim"]',
+            '[class*="submodel"]', '[class*="sub-model"]', '[class*="package"]'
+        ]);
+    }
+
+    // ── Strategy 7: Collect gallery images ──
     if (data.images.length < 3) {
         document.querySelectorAll([
             '.vehicle-images img', '.gallery img', '[class*="photo"] img',
@@ -144,19 +179,11 @@ function extractListing() {
     }
     data.images = [...new Set(data.images)].slice(0, 20);
 
-    // ── Strategy 6: Trim fallback from DOM ──
-    if (!data.trim) {
-        data.trim = text([
-            '[class*="trim"]', '[data-trim]', '[class*="Trim"]',
-            '[class*="submodel"]', '[class*="sub-model"]', '[class*="package"]'
-        ]);
-    }
-
-    // ── Strategy 7: Description (strip HTML tags) ──
+    // ── Strategy 8: Description (strip HTML) ──
     function stripHtml(html) {
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
-        return tmp.innerText || tmp.textContent || '';
+        return (tmp.innerText || tmp.textContent || '').trim();
     }
     if (!data.description) {
         const raw = text([
@@ -169,7 +196,7 @@ function extractListing() {
         data.description = stripHtml(data.description);
     }
 
-    // ── Strategy 8: Collect videos ──
+    // ── Strategy 9: Collect videos ──
     document.querySelectorAll('video').forEach(v => {
         const src = v.src || v.querySelector('source')?.src;
         if (src && src.startsWith('http') && !data.videos.includes(src)) data.videos.push(src);
@@ -177,16 +204,13 @@ function extractListing() {
     document.querySelectorAll('source[src*=".mp4"], source[src*=".mov"], source[src*=".webm"]').forEach(s => {
         if (s.src && !data.videos.includes(s.src)) data.videos.push(s.src);
     });
-    document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"], iframe[data-src*="youtube"]').forEach(f => {
-        const src = f.src || f.dataset.src;
-        if (src && !data.videos.includes(src)) data.videos.push(src);
+    document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"]').forEach(f => {
+        if (f.src && !data.videos.includes(f.src)) data.videos.push(f.src);
     });
 
     return data;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type === 'GET_LISTING') {
-        sendResponse(extractListing());
-    }
+    if (msg.type === 'GET_LISTING') sendResponse(extractListing());
 });
