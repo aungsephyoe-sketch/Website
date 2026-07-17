@@ -1,15 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 7
+// VERSION 8
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    // Confirm this version is loaded — check browser console for this message
-    console.log('%c[DM] VERSION 7 LOADED', 'background:#1877f2;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 8 LOADED', 'background:#1877f2;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.innerHTML = '🚗 Fill (v7)';
+    btn.innerHTML = '🚗 Fill (v8)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -22,7 +21,7 @@
     btn.addEventListener('click', () => {
         chrome.storage.local.get('dealerListing', ({ dealerListing }) => {
             if (!dealerListing) {
-                alert('No data.\nGo to a dealer page, click the extension icon, then "Auto-Fill Marketplace".');
+                alert('No data.\nGo to a dealer page, click the extension, then "Auto-Fill Marketplace".');
                 return;
             }
             autofill(dealerListing);
@@ -31,111 +30,102 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    async function waitFor(fn, timeout = 6000) {
+    async function waitFor(fn, timeout = 7000) {
         const end = Date.now() + timeout;
         while (Date.now() < end) {
             const v = fn();
             if (v) return v;
-            await sleep(150);
+            await sleep(200);
         }
         return null;
     }
 
-    // Safe React value setter — guards against non-input elements
-    function setVal(el, value) {
+    // ── REACT-SAFE VALUE SETTER ──────────────────────────────────────────
+    function setReact(el, value) {
+        if (!el) return;
         try {
-            if (!el) return;
             const tag = el.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-                const proto = tag === 'TEXTAREA' ? HTMLTextAreaElement.prototype
-                            : tag === 'SELECT'   ? HTMLSelectElement.prototype
-                            : HTMLInputElement.prototype;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                const proto = tag === 'TEXTAREA'
+                    ? HTMLTextAreaElement.prototype
+                    : HTMLInputElement.prototype;
                 const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
                 if (setter) setter.call(el, value);
+                el.dispatchEvent(new Event('input',  { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (tag === 'SELECT') {
+                const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
+                if (setter) setter.call(el, value);
+                el.dispatchEvent(new Event('change', { bubbles: true }));
             }
-        } catch(e) {}
-        try { el.dispatchEvent(new Event('input',  { bubbles: true })); } catch(e) {}
-        try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch(e) {}
+        } catch(e) {
+            try { el.dispatchEvent(new Event('input',  { bubbles: true })); } catch(_) {}
+            try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+        }
     }
 
-    // ── FIND DROPDOWN TRIGGER ──────────────────────────────────────────────────
+    // ── COLOR NORMALIZATION ───────────────────────────────────────────────
+    function normalizeColor(raw) {
+        if (!raw) return '';
+        const r = raw.toLowerCase();
+        if (/black/.test(r))                          return 'Black';
+        if (/white|pearl|ivory/.test(r))              return 'White';
+        if (/silver|chrome|aluminum|platinum/.test(r))return 'Silver';
+        if (/gray|grey|graphite|charcoal/.test(r))    return 'Gray';
+        if (/red|crimson|burgundy|maroon/.test(r))    return 'Red';
+        if (/blue|navy|cobalt|azure/.test(r))         return 'Blue';
+        if (/green|olive|forest/.test(r))             return 'Green';
+        if (/orange/.test(r))                         return 'Orange';
+        if (/yellow|gold(?!en)/.test(r))              return 'Yellow';
+        if (/brown|tan|copper|bronze/.test(r))        return 'Brown';
+        if (/beige|cream|sand|champagne/.test(r))     return 'Beige';
+        if (/purple|violet|lavender/.test(r))         return 'Purple';
+        if (/golden|gold/.test(r))                    return 'Gold';
+        return raw;
+    }
+
+    // ── FIND DROPDOWN TRIGGER ────────────────────────────────────────────────
     function findTrigger(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase().trim();
-
-            // 1. Native <select> whose first option or aria-label matches
             for (const sel of document.querySelectorAll('select')) {
                 const a = (sel.getAttribute('aria-label') || '').toLowerCase();
                 const first = (sel.options[0]?.text || '').toLowerCase();
-                if (a.includes(lower) || first.includes(lower)) {
-                    console.log('[DM] Found <select> for', label);
-                    return sel;
-                }
+                if (a.includes(lower) || first.includes(lower)) return sel;
             }
-
-            // 2. Element with exact aria-label match
             for (const el of document.querySelectorAll('[aria-label]')) {
-                if (el.getAttribute('aria-label').toLowerCase().trim() === lower) {
-                    console.log('[DM] Found aria-label exact for', label, el.tagName);
-                    return el;
-                }
+                if (el.getAttribute('aria-label').toLowerCase().trim() === lower) return el;
             }
-
-            // 3. role=combobox or role=button whose text content equals label
             for (const el of document.querySelectorAll('[role="combobox"],[role="button"],[role="listbox"]')) {
-                const directText = [...el.childNodes]
-                    .filter(n => n.nodeType === Node.TEXT_NODE)
-                    .map(n => n.textContent.trim()).join('').toLowerCase();
-                if (directText === lower) {
-                    console.log('[DM] Found role el by direct text for', label);
-                    return el;
-                }
+                const txt = el.textContent.trim().toLowerCase();
+                if (txt === lower) return el;
+            }
+            for (const el of document.querySelectorAll('span, div')) {
                 if (el.textContent.trim().toLowerCase() === lower) {
-                    console.log('[DM] Found role el by full text for', label);
-                    return el;
+                    const anc = el.closest('[role="button"]')
+                             || el.closest('[role="combobox"]')
+                             || el.closest('button')
+                             || el.closest('select');
+                    if (anc) return anc;
                 }
             }
-
-            // 4. Any element with text equals label — return clickable ancestor
-            for (const el of document.querySelectorAll('span, div, p')) {
-                if (el.textContent.trim().toLowerCase() === lower) {
-                    const ancestor = el.closest('[role="button"]')
-                                  || el.closest('[role="combobox"]')
-                                  || el.closest('button')
-                                  || el.closest('select');
-                    if (ancestor) {
-                        console.log('[DM] Found via child text ancestor for', label);
-                        return ancestor;
-                    }
-                }
-            }
-
-            // 5. Partial aria-label match
             for (const el of document.querySelectorAll('[aria-label]')) {
-                if (el.getAttribute('aria-label').toLowerCase().includes(lower)) {
-                    console.log('[DM] Found aria-label partial for', label, el.tagName);
-                    return el;
-                }
+                if (el.getAttribute('aria-label').toLowerCase().includes(lower)) return el;
             }
-
-            // 6. Partial text match on role elements
             for (const el of document.querySelectorAll('[role="button"],[role="combobox"]')) {
-                if (el.textContent.trim().toLowerCase().includes(lower)) {
-                    console.log('[DM] Found role partial text for', label);
-                    return el;
-                }
+                if (el.textContent.trim().toLowerCase().includes(lower)) return el;
             }
         }
-
-        console.warn('[DM] Could not find trigger for:', labels);
+        console.warn('[DM] Trigger not found:', labels);
         return null;
     }
 
-    // ── FIND TEXT INPUT ────────────────────────────────────────────────────────
+    // ── FIND TEXT INPUT ──────────────────────────────────────────────────────
     function findInput(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase();
-            for (const el of document.querySelectorAll('input, textarea')) {
+            for (const el of document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), textarea')) {
+                if (!el.offsetParent) continue;
                 const a = (el.getAttribute('aria-label') || '').toLowerCase();
                 const p = (el.getAttribute('placeholder') || '').toLowerCase();
                 if (a.includes(lower) || p.includes(lower)) return el;
@@ -144,10 +134,10 @@
         return null;
     }
 
-    // ── PICK OPTION FROM OPEN DROPDOWN ────────────────────────────────────────
+    // ── PICK OPTION FROM OPEN DROPDOWN ───────────────────────────────────────
     async function pickOption(values) {
         const lowers = (Array.isArray(values) ? values : [values]).map(v => v.toLowerCase().trim());
-        console.log('[DM] Waiting for option:', lowers);
+        console.log('[DM] Looking for option:', lowers[0]);
 
         const opt = await waitFor(() => {
             for (const sel of ['[role="option"]', '[role="menuitem"]', 'li[tabindex]', '[data-value]', 'li']) {
@@ -156,43 +146,62 @@
                     const txt = el.textContent.trim().toLowerCase();
                     for (const lower of lowers) {
                         if (txt === lower || txt.startsWith(lower) || txt.includes(lower)) {
-                            console.log('[DM] Found option:', JSON.stringify(txt));
+                            console.log('[DM] ✓ Option found:', txt);
                             return el;
                         }
                     }
                 }
             }
             return null;
-        }, 5000);
+        }, 6000);
 
         if (opt) {
             opt.scrollIntoView({ block: 'nearest' });
             opt.click();
-            await sleep(600);
+            await sleep(700);
             return true;
         }
-        console.warn('[DM] Option not found for:', lowers);
+        console.warn('[DM] ✗ Option not found for:', lowers[0]);
         return false;
     }
 
-    // ── FILL A TEXT FIELD ─────────────────────────────────────────────────────
+    // ── FILL A TEXT INPUT ──────────────────────────────────────────────────
     async function fillText(labels, value) {
         if (!value) return false;
-        const el = findInput(labels);
-        if (!el) { console.warn('[DM] Input not found for:', labels); return false; }
+
+        const el = await waitFor(() => findInput(labels), 5000);
+        if (!el) {
+            console.warn('[DM] Text input not found:', labels);
+            return false;
+        }
+
+        console.log('[DM] Filling text:', labels[0], '=', value.slice(0, 30));
+        el.scrollIntoView({ block: 'center' });
+        await sleep(200);
         el.click();
         el.focus();
-        await sleep(150);
-        setVal(el, value);
-        try { document.execCommand('selectAll', false, null); document.execCommand('insertText', false, value); } catch(e) {}
         await sleep(200);
+
+        setReact(el, value);
+        await sleep(100);
+
+        if (el.value !== value) {
+            try {
+                el.select?.();
+                document.execCommand('selectAll', false, null);
+                document.execCommand('insertText', false, value);
+            } catch(e) {}
+        }
+
+        await sleep(300);
         return true;
     }
 
-    // ── FILL A DROPDOWN ───────────────────────────────────────────────────────
+    // ── FILL A DROPDOWN ──────────────────────────────────────────────────────
     async function fillDropdown(labels, value, aliases) {
         if (!value) return false;
         const allValues = [value, ...(aliases || [])];
+        console.log('[DM] Filling dropdown:', labels[0], '=', value);
 
         for (const label of labels) {
             for (const sel of document.querySelectorAll('select')) {
@@ -202,9 +211,9 @@
                 for (const v of allValues) {
                     for (const o of sel.options) {
                         if (o.text.toLowerCase().includes(v.toLowerCase())) {
-                            console.log('[DM] Filling <select>', label, '=', o.text);
-                            setVal(sel, o.value);
-                            await sleep(600);
+                            console.log('[DM] ✓ <select> filled:', o.text);
+                            setReact(sel, o.value);
+                            await sleep(700);
                             return true;
                         }
                     }
@@ -212,18 +221,18 @@
             }
         }
 
-        const trigger = findTrigger(labels);
+        const trigger = await waitFor(() => findTrigger(labels), 6000);
         if (!trigger) return false;
 
         trigger.scrollIntoView({ block: 'center' });
         await sleep(300);
         trigger.click();
-        await sleep(800);
+        await sleep(1000);
 
         return await pickOption(allValues);
     }
 
-    // ── TICK A CHECKBOX ───────────────────────────────────────────────────────
+    // ── TICK A CHECKBOX ────────────────────────────────────────────────────
     async function tickCheckbox(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase();
@@ -253,69 +262,63 @@
         return 'SUV';
     }
 
-    function status(msg) { btn.innerHTML = msg; }
+    function status(msg) { btn.innerHTML = msg; console.log('[DM]', msg); }
 
     async function autofill(d) {
         btn.disabled = true;
         window.scrollTo(0, 0);
         await sleep(800);
 
-        console.log('[DM] Filling with data:', JSON.stringify({
-            year: d.year, make: d.make, model: d.model,
-            price: d.price, mileage: d.mileage, color: d.color
-        }));
+        const color = normalizeColor(d.color);
+        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, price: d.price, mileage: d.mileage, color, raw_color: d.color }));
 
         status('⏳ Vehicle type…');
-        await fillDropdown(
-            ['Vehicle type', 'vehicle type', 'Type'],
-            'Cars & Trucks',
-            ['Car', 'Cars/Trucks', 'Vehicles', 'cars & trucks']
-        );
+        await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
         await sleep(2000);
 
         status('⏳ Year…');
         await fillDropdown(['Year', 'Model year', 'year'], d.year);
-        await sleep(4000);
+        await sleep(5000);
 
         status('⏳ Make…');
         await fillDropdown(['Make', 'Brand', 'make', 'Vehicle make'], d.make);
-        await sleep(4000);
+        await sleep(5000);
 
         status('⏳ Model…');
         await fillDropdown(['Model', 'Vehicle model', 'model'], d.model);
-        await sleep(2000);
+        await sleep(3000);
 
         status('⏳ Price…');
         await fillText(['Price', 'Asking price', 'price'], (d.price || '').replace(/[^\d.]/g, ''));
-        await sleep(400);
+        await sleep(500);
 
         status('⏳ Mileage…');
         await fillText(['Mileage', 'Miles', 'Odometer', 'mileage'], (d.mileage || '').replace(/[^\d]/g, ''));
-        await sleep(400);
+        await sleep(500);
 
         status('⏳ Exterior color…');
-        await fillDropdown(['Exterior color', 'Color', 'exterior color'], d.color);
-        await sleep(1200);
+        await fillDropdown(['Exterior color', 'exterior color', 'Color'], color);
+        await sleep(1500);
 
         status('⏳ Interior color…');
-        await fillDropdown(['Interior color', 'interior color'], d.color);
-        await sleep(1200);
+        await fillDropdown(['Interior color', 'interior color'], color);
+        await sleep(1500);
 
         status('⏳ Body style…');
         await fillDropdown(['Body style', 'Body type', 'body style'], guessBodyStyle(d.model));
-        await sleep(1200);
+        await sleep(1500);
 
         status('⏳ Condition…');
         await fillDropdown(['Condition', 'Vehicle condition', 'condition'], 'Very good');
-        await sleep(1200);
+        await sleep(1500);
 
         status('⏳ Fuel type…');
         await fillDropdown(['Fuel type', 'Fuel', 'fuel type'], 'Gasoline');
-        await sleep(1200);
+        await sleep(1500);
 
         status('⏳ Description…');
         await fillText(['Description', 'Tell buyers', 'Additional details', 'description'], d.description || '');
-        await sleep(400);
+        await sleep(500);
 
         status('⏳ Clean title…');
         await tickCheckbox(['clean title', 'Clean title']);
@@ -323,9 +326,9 @@
         btn.innerHTML = '✅ Done! Review & submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.innerHTML = '🚗 Fill (v7)';
+            btn.innerHTML = '🚗 Fill (v8)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
-        }, 6000);
+        }, 8000);
     }
 })();
