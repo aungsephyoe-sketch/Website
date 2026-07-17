@@ -100,7 +100,7 @@ function extractListing() {
         '[class*="color"]', '[data-color]'
     ]);
 
-    // ── Strategy 4: Parse the page title / H1 for year/make/model ──
+    // ── Strategy 4: Parse the page title / H1 for year/make/model/trim ──
     const title = document.querySelector('h1')?.textContent || document.title || '';
     if (title && (!data.year || !data.make || !data.model)) {
         const yearMatch = title.match(/\b(19|20)\d{2}\b/);
@@ -115,9 +115,15 @@ function extractListing() {
                 if (title.toLowerCase().includes(m.toLowerCase())) { data.make = m; break; }
             }
         }
-        if (data.year && data.make && !data.model) {
-            const after = title.replace(data.year, '').replace(new RegExp(data.make, 'i'), '').trim();
-            data.model = after.split(/\s{2,}|\||-/)[0].trim();
+        // Model + trim are what come after year + make in the title
+        const afterYearMake = title.replace(data.year, '').replace(new RegExp(data.make, 'i'), '').trim();
+        const titleWords = afterYearMake.split(/\s+/);
+        if (!data.model && titleWords.length) {
+            data.model = titleWords[0];
+        }
+        // Remaining words are the trim (e.g. PREMIUM LUXURY, Sport, Limited)
+        if (!data.trim && titleWords.length > 1) {
+            data.trim = titleWords.slice(1).join(' ').replace(/\b\w/g, c => c.toUpperCase());
         }
     }
 
@@ -138,17 +144,12 @@ function extractListing() {
     }
     data.images = [...new Set(data.images)].slice(0, 20);
 
-    // ── Strategy 6: Trim fallback ──
+    // ── Strategy 6: Trim fallback from DOM ──
     if (!data.trim) {
         data.trim = text([
             '[class*="trim"]', '[data-trim]', '[class*="Trim"]',
             '[class*="submodel"]', '[class*="sub-model"]', '[class*="package"]'
         ]);
-    }
-    if (!data.trim) {
-        const bodyText = document.body.innerText;
-        const m = bodyText.match(/(?:trim|package|edition)[:\s]+([A-Za-z0-9][\w\s]{1,30}?)(?:\n|,|\|)/i);
-        if (m) data.trim = m[1].trim();
     }
 
     // ── Strategy 7: Description (strip HTML tags) ──
