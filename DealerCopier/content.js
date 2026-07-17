@@ -21,11 +21,12 @@ function extractListing() {
                     data.trim   = data.trim   || (item.vehicleConfiguration || '');
                     data.color  = data.color  || (item.color || '');
                     data.interiorColor = data.interiorColor || (item.vehicleInteriorColor || item.vehicleInteriorType || '');
-                    // vehicleTransmission can be a URL or schema value — only keep plain words
+                    // Only trust explicit schema.org transmission type URLs, not ambiguous strings
                     if (!data.transmission && item.vehicleTransmission) {
                         const tx = String(item.vehicleTransmission).toLowerCase();
-                        if (/manual/.test(tx) && !/automatic/.test(tx)) data.transmission = 'Manual';
-                        else if (/auto|cvt|dct/.test(tx)) data.transmission = 'Automatic';
+                        if (tx.includes('manualtransmission') || tx === 'manual') data.transmission = 'Manual';
+                        else if (tx.includes('automatictransmission') || /^auto/.test(tx) || /\bcvt\b|\bdct\b/.test(tx)) data.transmission = 'Automatic';
+                        // Ignore: "1-speed direct drive", numeric-only speeds, etc.
                     }
                     data.vin    = data.vin    || (item.vehicleIdentificationNumber || item.vin || '');
                     data.mileage = data.mileage || String(item.mileageFromOdometer?.value || item.mileageFromOdometer || '');
@@ -100,8 +101,7 @@ function extractListing() {
         }
     }
 
-    // ── Label/value scanner: finds a visible label element then reads the sibling/child value ──
-    // Works for Carfax Vehicle Highlights grid, AutoTrader spec tables, dealer pages, etc.
+    // ── Label/value scanner ──
     function findLabelValue(labelPattern) {
         const candidates = document.querySelectorAll(
             'p, span, div, td, th, dt, li, [class*="label"], [class*="title"], [class*="heading"]'
@@ -113,7 +113,6 @@ function extractListing() {
             const own = isLeafLike ? el.textContent.trim() : '';
             if (!own || !labelPattern.test(own)) continue;
 
-            // 1. Next sibling element
             let sib = el.nextElementSibling;
             while (sib) {
                 const t = sib.textContent.trim();
@@ -121,14 +120,12 @@ function extractListing() {
                 sib = sib.nextElementSibling;
             }
 
-            // 2. Parent's next sibling
             const parentSib = el.parentElement?.nextElementSibling;
             if (parentSib) {
                 const t = parentSib.textContent.trim();
                 if (t && t.length < 60) return t;
             }
 
-            // 3. Grandparent scan (Carfax highlight grid)
             const gp = el.parentElement?.parentElement;
             if (gp) {
                 const children = Array.from(gp.children);
@@ -172,7 +169,7 @@ function extractListing() {
         if (m) data.interiorColor = m[1].trim().split(/[\n,]/)[0].trim();
     }
 
-    // Body style — read from page first, fall back to model-based guess in autofill
+    // Body style
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
     // Transmission — normalize to 'Manual' or 'Automatic' at every step
@@ -180,7 +177,6 @@ function extractListing() {
         const raw = findLabelValue(/^transmission$/i);
         if (raw) {
             const r = raw.toLowerCase();
-            // "automatic" anywhere wins (handles "10-Speed Automatic with Manual Shift Mode")
             if (/automatic|cvt|dct|pdk|tiptronic|dual.?clutch|continuously variable/.test(r)) {
                 data.transmission = 'Automatic';
             } else if (/\bmanual\b/.test(r)) {

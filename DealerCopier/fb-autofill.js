@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 21
+// VERSION 22
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 21 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 22 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v21)';
+    btn.textContent = 'Fill (v22)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -116,21 +116,17 @@
 
     async function fillText(labels, value) {
         if (value === null || value === undefined || value === '') return false;
-
         const el = await waitFor(() => findInputByLabel(labels), 5000);
         if (!el) { console.warn('[DM] Text input not found:', labels); return false; }
-
         console.log('[DM] fillText:', labels[0], '=', String(value).slice(0, 60));
         el.scrollIntoView({ block: 'center' });
         await sleep(200);
         el.click();
         el.focus();
         await sleep(300);
-
         setReact(el, '');
         await sleep(100);
         setReact(el, value);
-
         if (String(el.value) !== String(value)) {
             try {
                 el.select();
@@ -138,7 +134,6 @@
                 document.execCommand('insertText', false, String(value));
             } catch(e) {}
         }
-
         await sleep(300);
         return true;
     }
@@ -146,7 +141,6 @@
     function findTrigger(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase().trim();
-
             for (const el of document.querySelectorAll('select')) {
                 const a = (el.getAttribute('aria-label') || '').toLowerCase();
                 const first = (el.options[0] ? el.options[0].text : '').toLowerCase();
@@ -179,7 +173,6 @@
     async function pickOption(values) {
         const lowers = (Array.isArray(values) ? values : [values]).map(v => v.toLowerCase().trim());
         console.log('[DM] pickOption:', lowers[0]);
-
         const opt = await waitFor(() => {
             const selectors = ['[role="option"]', '[role="menuitem"]', 'li[tabindex]', '[data-value]', 'li'];
             for (const sel of selectors) {
@@ -195,7 +188,6 @@
             }
             return null;
         }, 6000);
-
         if (opt) {
             opt.scrollIntoView({ block: 'nearest' });
             opt.click();
@@ -210,7 +202,6 @@
         if (!value) return false;
         const allValues = [value, ...(aliases || [])];
         console.log('[DM] fillDropdown:', labels[0], '=', value);
-
         for (const label of labels) {
             for (const sel of document.querySelectorAll('select')) {
                 const a = (sel.getAttribute('aria-label') || '').toLowerCase();
@@ -228,15 +219,12 @@
                 }
             }
         }
-
         const trigger = await waitFor(() => findTrigger(labels), 6000);
         if (!trigger) return false;
-
         trigger.scrollIntoView({ block: 'center' });
         await sleep(400);
         trigger.click();
         await sleep(1000);
-
         return await pickOption(allValues);
     }
 
@@ -263,6 +251,8 @@
         const m = ((model || '') + ' ' + (trim || '')).toLowerCase();
         if (/odyssey|sienna|pacifica|caravan|sedona|minivan|mini-van/.test(m)) return 'Minivan';
         if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
+        // Mach-E must come before Mustang (Mustang would otherwise match Coupe)
+        if (/mach-?e/.test(m)) return 'SUV';
         if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|encore|envoy|captiva|passport|vezel|hr-v|hrv|cx-30|cx-3|bravada|jimmy|envision|kona|venue|nexo|ioniq|palisade|telluride|sorento|sportage|seltos|soul|niro|juke|kicks|xterra|x-trail|leaf\b|bolt\b|tracker|\bsuv\b|crossover|4wd|awd/.test(m)) return 'SUV';
         if (/mustang|camaro|challenger|corvette|charger|86|brz|miata|370z|400z|\bcoupe\b|2-door|2dr/.test(m)) return 'Coupe';
         if (/convert|cabriolet|roadster/.test(m)) return 'Convertible';
@@ -281,7 +271,7 @@
 
         const extColor = normalizeColor(d.color);
         const intColor = normalizeColor(d.interiorColor) || 'Black';
-        // Final safety normalization — always resolve to exactly 'Manual' or 'Automatic'
+        // Final safety: always resolve to exactly 'Manual' or 'Automatic'
         const rawTx = (d.transmission || '').toLowerCase();
         const transmission = (/\bmanual\b/.test(rawTx) && !/automatic|cvt|dct|pdk|tiptronic/.test(rawTx))
             ? 'Manual' : 'Automatic';
@@ -348,7 +338,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v21)';
+            btn.textContent = 'Fill (v22)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
