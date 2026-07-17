@@ -21,7 +21,12 @@ function extractListing() {
                     data.trim   = data.trim   || (item.vehicleConfiguration || '');
                     data.color  = data.color  || (item.color || '');
                     data.interiorColor = data.interiorColor || (item.vehicleInteriorColor || item.vehicleInteriorType || '');
-                    data.transmission = data.transmission || (item.vehicleTransmission || '');
+                    // vehicleTransmission can be a URL or schema value — only keep plain words
+                    if (!data.transmission && item.vehicleTransmission) {
+                        const tx = String(item.vehicleTransmission).toLowerCase();
+                        if (/manual/.test(tx) && !/automatic/.test(tx)) data.transmission = 'Manual';
+                        else if (/auto|cvt|dct/.test(tx)) data.transmission = 'Automatic';
+                    }
                     data.vin    = data.vin    || (item.vehicleIdentificationNumber || item.vin || '');
                     data.mileage = data.mileage || String(item.mileageFromOdometer?.value || item.mileageFromOdometer || '');
                     if (item.offers?.price) data.price = '$' + item.offers.price;
@@ -169,18 +174,21 @@ function extractListing() {
     // Body style — read from page first, fall back to model-based guess in autofill
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
-    // Transmission — read explicit label from page, never guess from loose "manual" keyword
-    if (!data.transmission) data.transmission = text([
-        '[class*="transmission"]', '[data-transmission]', '[class*="Transmission"]'
-    ]);
+    // Transmission — read explicit label first, then fall back carefully
     if (!data.transmission) data.transmission = findLabelValue(/^transmission$/i);
     if (!data.transmission) {
+        const el = document.querySelector('[data-transmission], [itemprop="vehicleTransmission"]');
+        if (el) data.transmission = el.textContent.trim() || el.getAttribute('content') || '';
+    }
+    if (!data.transmission) {
         const bodyText = document.body.innerText;
-        const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,30})/i);
+        const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,40})/i);
         if (txMatch) {
             const raw = txMatch[1].trim().toLowerCase();
-            if (/\bmanual\b|\bmt\b|\d-speed\s+manual/.test(raw) && !/automatic/.test(raw)) data.transmission = 'Manual';
-            else data.transmission = 'Automatic';
+            // "manual mode" / "manual shift" still means automatic; only pure manual counts
+            const isManual = /\bmanual\b/.test(raw) && !/automatic|cvt|dct|pdk|tiptronic/.test(raw)
+                          && !/manual\s+mode|manual\s+shift|manual\s+adjust/.test(raw);
+            data.transmission = isManual ? 'Manual' : 'Automatic';
         }
     }
     if (!data.transmission) data.transmission = 'Automatic';

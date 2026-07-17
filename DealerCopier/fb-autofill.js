@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 17
+// VERSION 18
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 17 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 18 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v17)';
+    btn.textContent = 'Fill (v18)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -347,7 +347,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v17)';
+            btn.textContent = 'Fill (v18)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
