@@ -2,7 +2,7 @@
 
 function extractListing() {
     const data = {
-        year: '', make: '', model: '', trim: '',
+        year: '', make: '', model: '', trim: '', bodyStyle: '',
         price: '', mileage: '', color: '', interiorColor: '', transmission: '', vin: '',
         description: '', images: [], videos: [], url: window.location.href
     };
@@ -95,32 +95,42 @@ function extractListing() {
         }
     }
 
-    // ── Color: scan vehicle highlights / key features first, then spec rows, then DOM ──
-    function scanHighlightsForColor(keyword) {
-        // Vehicle highlights sections on Carfax, AutoTrader, Cars.com, dealer sites
-        const highlightSections = document.querySelectorAll([
-            '[class*="highlight"]', '[class*="Highlight"]',
-            '[class*="key-feature"]', '[class*="keyFeature"]',
-            '[class*="vehicle-feature"]', '[class*="vehicleFeature"]',
-            '[class*="overview"]', '[class*="Overview"]',
-            '[class*="spec"]', '[class*="detail"]'
-        ].join(','));
-        for (const sec of highlightSections) {
-            const t = sec.textContent;
-            const re = new RegExp(keyword + '[:\\s/]+([A-Za-z][A-Za-z /]{1,30})', 'i');
-            const m = t.match(re);
-            if (m) return m[1].trim().split(/[\n,]/)[0].trim();
-        }
-        return '';
-    }
+    // ── Label/value scanner: finds a visible label element then reads the adjacent value ──
+    // Works for Carfax Vehicle Highlights grid, AutoTrader spec tables, dealer pages, etc.
+    function findLabelValue(labelPattern) {
+        const candidates = document.querySelectorAll(
+            'p, span, div, td, th, dt, li, [class*="label"], [class*="title"], [class*="heading"]'
+        );
+        for (const el of candidates) {
+            const own = (el.childElementCount === 0 || el.tagName === 'DT')
+                ? el.textContent.trim()
+                : '';
+            if (!own || !labelPattern.test(own)) continue;
 
-    function scanTableForLabel(labelPattern) {
-        const rows = document.querySelectorAll('tr, [class*="spec-row"], [class*="specRow"], [class*="detail-row"], [class*="feature-row"]');
-        for (const row of rows) {
-            const cells = row.querySelectorAll('td, th, [class*="label"], [class*="value"], span, div');
-            const texts = Array.from(cells).map(c => c.textContent.trim());
-            for (let i = 0; i < texts.length - 1; i++) {
-                if (labelPattern.test(texts[i]) && texts[i + 1]) return texts[i + 1];
+            // 1. Next sibling element
+            let sib = el.nextElementSibling;
+            while (sib) {
+                const t = sib.textContent.trim();
+                if (t && t.length < 60) return t;
+                sib = sib.nextElementSibling;
+            }
+
+            // 2. Parent's next sibling
+            const parentSib = el.parentElement?.nextElementSibling;
+            if (parentSib) {
+                const t = parentSib.textContent.trim();
+                if (t && t.length < 60) return t;
+            }
+
+            // 3. Grandparent scan (Carfax highlight grid)
+            const gp = el.parentElement?.parentElement;
+            if (gp) {
+                const children = Array.from(gp.children);
+                const idx = children.indexOf(el.parentElement);
+                if (idx > -1 && children[idx + 1]) {
+                    const t = children[idx + 1].textContent.trim();
+                    if (t && t.length < 60) return t;
+                }
             }
         }
         return '';
@@ -131,8 +141,8 @@ function extractListing() {
         '[class*="exterior-color"]', '[class*="exteriorColor"]',
         '[data-exterior-color]', '[class*="ext-color"]'
     ]);
-    if (!data.color) data.color = scanHighlightsForColor('exterior\\s*(?:color|colour)');
-    if (!data.color) data.color = scanTableForLabel(/^ext(erior)?\s*(color|colour)?$/i);
+    if (!data.color) data.color = findLabelValue(/^exterior\s*(color|colour)$/i);
+    if (!data.color) data.color = findLabelValue(/^ext\.?\s*(color|colour)$/i);
     if (!data.color) {
         const bodyText = document.body.innerText;
         const m = bodyText.match(/exterior\s*(?:color|colour)[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i)
@@ -146,8 +156,8 @@ function extractListing() {
         '[class*="interior-color"]', '[class*="interiorColor"]',
         '[data-interior-color]', '[class*="int-color"]'
     ]);
-    if (!data.interiorColor) data.interiorColor = scanHighlightsForColor('interior\\s*(?:color|colour)');
-    if (!data.interiorColor) data.interiorColor = scanTableForLabel(/^int(erior)?\s*(color|colour)?$/i);
+    if (!data.interiorColor) data.interiorColor = findLabelValue(/^interior\s*(color|colour)$/i);
+    if (!data.interiorColor) data.interiorColor = findLabelValue(/^int\.?\s*(color|colour)$/i);
     if (!data.interiorColor) {
         const bodyText = document.body.innerText;
         const m = bodyText.match(/interior\s*(?:color|colour)[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i)
@@ -156,30 +166,24 @@ function extractListing() {
         if (m) data.interiorColor = m[1].trim().split(/[\n,]/)[0].trim();
     }
 
-    // Transmission — check explicit spec label first, then page text carefully
+    // Body style — read from page first, fall back to model-based guess in autofill
+    data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
+
+    // Transmission — read explicit label from page, never guess from loose "manual" keyword
     if (!data.transmission) data.transmission = text([
         '[class*="transmission"]', '[data-transmission]', '[class*="Transmission"]'
     ]);
-    if (!data.transmission) data.transmission = scanTableForLabel(/^transmission$/i);
+    if (!data.transmission) data.transmission = findLabelValue(/^transmission$/i);
     if (!data.transmission) {
         const bodyText = document.body.innerText;
-        // Look for explicit "Transmission: X" label
         const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,30})/i);
         if (txMatch) {
             const raw = txMatch[1].trim().toLowerCase();
-            if (/\bmanual\b|(?<!\w)mt\b|\d-speed\s+manual/.test(raw)) data.transmission = 'Manual';
+            if (/\bmanual\b|\bmt\b|\d-speed\s+manual/.test(raw) && !/automatic/.test(raw)) data.transmission = 'Manual';
             else data.transmission = 'Automatic';
         }
     }
-    if (!data.transmission) {
-        // Only call it Manual if a spec element says exactly "Manual" with no "Automatic" nearby
-        const specEls = Array.from(document.querySelectorAll('td, [class*="spec-value"], [class*="specValue"], [class*="detail-value"]'));
-        const specTexts = specEls.map(el => el.textContent.trim().toLowerCase());
-        const hasExplicitManual = specTexts.some(t => /^manual(\s+transmission)?$/.test(t));
-        const hasAutomatic = specTexts.some(t => /automatic|cvt|dct/.test(t));
-        if (hasExplicitManual && !hasAutomatic) data.transmission = 'Manual';
-        else data.transmission = 'Automatic';
-    }
+    if (!data.transmission) data.transmission = 'Automatic';
 
     // ── Strategy 4: Parse title/H1 for year/make/model ──
     const makes = ['Toyota','Honda','Ford','Chevrolet','Chevy','Nissan','Hyundai','Kia',

@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 16
+// VERSION 17
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 16 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 17 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v16)';
+    btn.textContent = 'Fill (v17)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -130,7 +130,6 @@
 
         setReact(el, '');
         await sleep(100);
-
         setReact(el, value);
 
         if (String(el.value) !== String(value)) {
@@ -284,7 +283,8 @@
         const extColor = normalizeColor(d.color);
         const intColor = normalizeColor(d.interiorColor) || 'Black';
         const transmission = d.transmission || 'Automatic';
-        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, price: d.price, mileage: d.mileage, extColor, intColor, transmission }));
+        const bodyStyle = d.bodyStyle || guessBodyStyle(d.model, d.trim);
+        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, bodyStyle, price: d.price, mileage: d.mileage, extColor, intColor, transmission }));
 
         status('Vehicle type...');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
@@ -314,7 +314,7 @@
         await sleep(300);
 
         status('Body style...');
-        await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model, d.trim));
+        await fillDropdown(['Body style', 'body style', 'Body type'], bodyStyle);
         await sleep(800);
 
         status('Exterior color...');
@@ -347,7 +347,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v16)';
+            btn.textContent = 'Fill (v17)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
