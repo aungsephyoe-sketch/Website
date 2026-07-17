@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 11
+// VERSION 12
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 11 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 12 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v11)';
+    btn.textContent = 'Fill (v12)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -253,14 +253,17 @@
         return false;
     }
 
-    function guessBodyStyle(model) {
-        const m = (model || '').toLowerCase();
-        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx|lx|rx|rav4|cr-v|tucson|santa fe|equinox|blazer|bronco|terrain|edge/.test(m)) return 'SUV';
-        if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan/.test(m)) return 'Truck';
-        if (/camry|accord|civic|corolla|altima|sentra|malibu|sonata|elantra|jetta|passat/.test(m)) return 'Sedan';
-        if (/mustang|camaro|challenger|corvette/.test(m)) return 'Coupe';
-        if (/odyssey|sienna|pacifica|caravan|sedona/.test(m)) return 'Minivan';
-        return 'SUV';
+    function guessBodyStyle(model, trim) {
+        const m = ((model || '') + ' ' + (trim || '')).toLowerCase();
+        if (/odyssey|sienna|pacifica|caravan|sedona|minivan|mini-van/.test(m)) return 'Minivan';
+        if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
+        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|\bsuv\b|crossover/.test(m)) return 'SUV';
+        if (/mustang|camaro|challenger|corvette|charger|86|brz|miata|370z|400z|\bcoupe\b|2-door|2dr/.test(m)) return 'Coupe';
+        if (/convert|cabriolet|roadster/.test(m)) return 'Convertible';
+        if (/hatchback|\bhatch\b|golf|\bfit\b|yaris/.test(m)) return 'Hatchback';
+        if (/\bwagon\b|estate/.test(m)) return 'Wagon';
+        if (/camry|accord|civic|corolla|altima|sentra|malibu|sonata|elantra|jetta|passat|fusion|impala|maxima|avalon|legacy|impreza|optima|k5|stinger|a4|a6|3 series|5 series|c-class|e-class|\bsedan\b|4-door|4dr/.test(m)) return 'Sedan';
+        return 'Sedan';
     }
 
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
@@ -271,8 +274,8 @@
         await sleep(800);
 
         const extColor = normalizeColor(d.color);
-        const intColor = 'Black';
-        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, price: d.price, mileage: d.mileage, extColor }));
+        const intColor = normalizeColor(d.interiorColor) || 'Black';
+        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, price: d.price, mileage: d.mileage, extColor, intColor }));
 
         status('Vehicle type...');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
@@ -299,7 +302,7 @@
         await sleep(500);
 
         status('Body style...');
-        await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model));
+        await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model, d.trim));
         await sleep(1500);
 
         status('Exterior color...');
@@ -328,7 +331,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v11)';
+            btn.textContent = 'Fill (v12)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
