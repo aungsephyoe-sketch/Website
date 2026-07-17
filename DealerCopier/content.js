@@ -178,22 +178,24 @@ function extractListing() {
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
     // Transmission — read explicit label first, then fall back carefully
-    // Priority: exact label scan → data attribute → itemprop → body text regex → default Automatic
+    // Priority: Schema.org → exact label scan → data attribute → body text (only if clearly a tx type) → default Automatic
     if (!data.transmission) data.transmission = findLabelValue(/^transmission$/i);
     if (!data.transmission) {
         const el = document.querySelector('[data-transmission], [itemprop="vehicleTransmission"]');
         if (el) data.transmission = el.textContent.trim() || el.getAttribute('content') || '';
     }
     if (!data.transmission) {
-        // Regex against full page text — but require "manual" without "automatic" in same phrase
+        // Only trust body-text if the captured phrase IS a transmission type description
         const bodyText = document.body.innerText;
         const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,40})/i);
         if (txMatch) {
             const raw = txMatch[1].trim().toLowerCase();
-            // "manual mode" / "manual shift" still means automatic; only pure manual counts
-            const isManual = /\bmanual\b/.test(raw) && !/automatic|cvt|dct|pdk|tiptronic/.test(raw)
-                          && !/manual\s+mode|manual\s+shift|manual\s+adjust/.test(raw);
-            data.transmission = isManual ? 'Manual' : 'Automatic';
+            if (/^(automatic|auto\b|cvt|dct|pdk|tiptronic|dual.?clutch|continuously variable)/.test(raw)) {
+                data.transmission = 'Automatic';
+            } else if (/^manual\b/.test(raw) && !/manual\s+mode|manual\s+shift|manual\s+adjust/.test(raw)) {
+                data.transmission = 'Manual';
+            }
+            // Otherwise: raw is not a transmission type (e.g. "fluid manually") — skip it
         }
     }
     if (!data.transmission) data.transmission = 'Automatic';
