@@ -3,7 +3,6 @@
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    // Floating button
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
     btn.innerHTML = '🚗 Insert Vehicle Data';
@@ -19,7 +18,7 @@
     btn.addEventListener('click', () => {
         chrome.storage.local.get('dealerListing', ({ dealerListing }) => {
             if (!dealerListing) {
-                alert('No vehicle data found.\nGo to a dealer listing page, click the extension, then click "Auto-Fill Marketplace".');
+                alert('No data found.\nGo to a dealer page, click the extension icon, then "Auto-Fill Marketplace".');
                 return;
             }
             autofill(dealerListing);
@@ -28,80 +27,109 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    async function reactType(el, value) {
-        if (!el || !value) return;
-        el.focus();
-        await sleep(100);
-        el.select?.();
-        document.execCommand('selectAll', false);
-        document.execCommand('insertText', false, String(value));
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        await sleep(200);
+    async function waitFor(selectorFn, timeout = 4000) {
+        const start = Date.now();
+        while (Date.now() - start < timeout) {
+            const el = selectorFn();
+            if (el) return el;
+            await sleep(150);
+        }
+        return null;
     }
 
-    function findField(hints) {
+    function findEl(hints) {
         for (const hint of hints) {
-            const direct = document.querySelector(
-                `input[aria-label="${hint}"], textarea[aria-label="${hint}"],` +
-                `input[placeholder="${hint}"], textarea[placeholder="${hint}"]`
-            );
-            if (direct) return direct;
-            for (const el of document.querySelectorAll('input, textarea')) {
-                const lbl = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').toLowerCase();
-                if (lbl === hint.toLowerCase()) return el;
+            const lower = hint.toLowerCase();
+            for (const el of document.querySelectorAll('input, textarea, select, [role="combobox"], [role="button"]')) {
+                const label = (
+                    el.getAttribute('aria-label') ||
+                    el.getAttribute('placeholder') ||
+                    el.getAttribute('aria-labelledby') || ''
+                ).toLowerCase();
+                if (label.includes(lower)) return el;
             }
-            for (const label of document.querySelectorAll('label')) {
-                if (label.textContent.trim().toLowerCase() === hint.toLowerCase()) {
-                    const forId = label.getAttribute('for');
-                    const found = forId ? document.getElementById(forId) : label.querySelector('input, select, textarea');
-                    if (found) return found;
+            for (const lbl of document.querySelectorAll('label')) {
+                if (lbl.textContent.trim().toLowerCase().includes(lower)) {
+                    const id = lbl.getAttribute('for');
+                    const el = id ? document.getElementById(id) : lbl.querySelector('input,select,textarea');
+                    if (el) return el;
                 }
             }
         }
         return null;
     }
 
-    async function selectDropdown(hints, optionText) {
-        if (!optionText) return false;
+    function setReactValue(el, value) {
+        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (setter) setter.call(el, value);
+        ['input', 'change'].forEach(type => el.dispatchEvent(new Event(type, { bubbles: true })));
+    }
 
-        // Try native <select>
+    async function typeIntoField(hints, value) {
+        if (!value) return false;
+        const el = findEl(hints);
+        if (!el) return false;
+        el.focus();
+        el.click();
+        await sleep(200);
+        setReactValue(el, value);
+        await sleep(300);
+        return true;
+    }
+
+    async function fillDropdown(hints, value) {
+        if (!value) return false;
+
+        // 1. Try native <select>
         for (const hint of hints) {
             for (const sel of document.querySelectorAll('select')) {
                 const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
-                if (lbl.includes(hint.toLowerCase())) {
-                    for (const opt of sel.options) {
-                        if (opt.text.toLowerCase().includes(optionText.toLowerCase())) {
-                            sel.value = opt.value;
-                            sel.dispatchEvent(new Event('change', { bubbles: true }));
-                            await sleep(300);
-                            return true;
-                        }
+                if (!lbl.includes(hint.toLowerCase())) continue;
+                for (const opt of sel.options) {
+                    if (opt.text.toLowerCase().includes(value.toLowerCase())) {
+                        sel.value = opt.value;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        await sleep(400);
+                        return true;
                     }
                 }
             }
         }
 
-        // Custom React dropdown
-        let trigger = null;
-        for (const hint of hints) {
-            trigger = document.querySelector(`[aria-label*="${hint}" i]`);
-            if (!trigger) {
-                for (const el of document.querySelectorAll('[role="button"], [role="combobox"], div[tabindex]')) {
-                    const txt = (el.getAttribute('aria-label') || el.textContent || '').toLowerCase();
-                    if (txt.includes(hint.toLowerCase())) { trigger = el; break; }
-                }
-            }
-            if (trigger) break;
-        }
+        // 2. Find field, type to open suggestions
+        let field = findEl(hints);
+        if (!field) return false;
 
-        if (!trigger) return false;
-        trigger.click();
+        field.click();
+        field.focus();
+        await sleep(400);
+
+        setReactValue(field, value);
+        await sleep(100);
+        field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: value[0] }));
+        field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: value[0] }));
         await sleep(800);
 
-        const allOpts = document.querySelectorAll('[role="option"], [role="menuitem"], [role="listitem"], li[tabindex]');
+        // Wait for and click matching option
+        const picked = await waitFor(() => {
+            const opts = document.querySelectorAll('[role="option"], [role="listitem"]');
+            for (const opt of opts) {
+                if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) return opt;
+            }
+            return null;
+        }, 3000);
+
+        if (picked) {
+            picked.click();
+            await sleep(600);
+            return true;
+        }
+
+        // 3. Fallback: any visible list item
+        const allOpts = document.querySelectorAll('li, [role="option"], [data-value]');
         for (const opt of allOpts) {
-            if (opt.textContent.trim().toLowerCase().includes(optionText.toLowerCase())) {
+            if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
                 opt.click();
                 await sleep(500);
                 return true;
@@ -113,8 +141,8 @@
     async function tickCheckbox(hints) {
         for (const hint of hints) {
             for (const cb of document.querySelectorAll('input[type="checkbox"]')) {
-                const label = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
-                const txt = (label?.textContent || cb.getAttribute('aria-label') || '').toLowerCase();
+                const lbl = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
+                const txt = (lbl?.textContent || cb.getAttribute('aria-label') || '').toLowerCase();
                 if (txt.includes(hint.toLowerCase())) {
                     if (!cb.checked) cb.click();
                     await sleep(200);
@@ -135,55 +163,57 @@
 
     function guessBodyStyle(model) {
         const m = (model || '').toLowerCase();
-        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|qx[0-9]|gx|lx|rx|cx-[59]|rav4|cr-v|hrv|tucson|santa fe|equinox|blazer|bronco/.test(m)) return 'SUV';
-        if (/silverado|f-150|f150|ram 1500|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan/.test(m)) return 'Truck';
-        if (/camry|accord|civic|corolla|altima|sentra|malibu|impala|fusion|sonata|elantra|optima|jetta|passat|model 3|model s/.test(m)) return 'Sedan';
+        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx|lx|rx|rav4|cr-v|tucson|santa fe|equinox|blazer|bronco/.test(m)) return 'SUV';
+        if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan/.test(m)) return 'Truck';
+        if (/camry|accord|civic|corolla|altima|sentra|malibu|sonata|elantra|jetta|passat/.test(m)) return 'Sedan';
         if (/mustang|camaro|challenger|corvette/.test(m)) return 'Coupe';
-        if (/odyssey|sienna|pacifica|caravan|sedona|carnival/.test(m)) return 'Minivan';
-        if (/convertible|cabriolet/.test(m)) return 'Convertible';
+        if (/odyssey|sienna|pacifica|caravan|sedona/.test(m)) return 'Minivan';
         return '';
     }
 
     async function autofill(d) {
-        btn.innerHTML = '⏳ Filling…';
+        btn.innerHTML = '⏳ Filling… please wait';
         btn.disabled = true;
         window.scrollTo(0, 0);
+        await sleep(800);
+
+        await waitFor(() => findEl(['Year', 'Model year']), 5000);
+        await fillDropdown(['Year', 'Model year'], d.year);
+        await sleep(800);
+
+        await waitFor(() => findEl(['Make', 'Brand']), 5000);
+        await fillDropdown(['Make', 'Brand'], d.make);
+        await sleep(800);
+
+        await waitFor(() => findEl(['Model']), 5000);
+        await fillDropdown(['Model'], d.model);
+        await sleep(800);
+
+        await typeIntoField(['Price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
+        await sleep(400);
+
+        await typeIntoField(['Mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
+        await sleep(400);
+
+        await fillDropdown(['Exterior color', 'Color'], d.color);
         await sleep(600);
 
-        await selectDropdown(['Year', 'Model year'], d.year);
-        await sleep(400);
-
-        await selectDropdown(['Make', 'Brand'], d.make);
-        await sleep(400);
-
-        await selectDropdown(['Model'], d.model);
-        await sleep(400);
-
-        const priceEl = findField(['Price', 'Asking price', 'List price']);
-        if (priceEl) await reactType(priceEl, (d.price || '').replace(/[^\d.]/g, ''));
-
-        const mileageEl = findField(['Mileage', 'Miles', 'Odometer']);
-        if (mileageEl) await reactType(mileageEl, (d.mileage || '').replace(/[^\d]/g, ''));
-
-        await selectDropdown(['Exterior color', 'Color'], d.color);
-        await sleep(400);
-
-        await selectDropdown(['Interior color'], d.color);
-        await sleep(400);
+        await fillDropdown(['Interior color'], d.color);
+        await sleep(600);
 
         const bodyStyle = guessBodyStyle(d.model);
-        if (bodyStyle) { await selectDropdown(['Body style', 'Body type', 'Type'], bodyStyle); await sleep(400); }
+        if (bodyStyle) { await fillDropdown(['Body style', 'Body type'], bodyStyle); await sleep(600); }
 
-        await selectDropdown(['Condition', 'Vehicle condition'], 'Very good');
+        await fillDropdown(['Condition', 'Vehicle condition'], 'Very good');
+        await sleep(600);
+
+        await fillDropdown(['Fuel', 'Fuel type'], 'Gasoline');
+        await sleep(600);
+
+        await typeIntoField(['Description', 'Tell buyers', 'Additional'], d.description || '');
         await sleep(400);
 
-        await selectDropdown(['Fuel', 'Fuel type'], 'Gasoline');
-        await sleep(400);
-
-        const descEl = findField(['Description', 'Tell buyers', 'Additional details']);
-        if (descEl) await reactType(descEl, d.description || '');
-
-        await tickCheckbox(['clean title', 'Clean title', 'title is clean']);
+        await tickCheckbox(['clean title', 'Clean title']);
 
         btn.innerHTML = '✅ Done! Scroll up to review';
         btn.style.background = '#42b72a';
@@ -191,6 +221,6 @@
             btn.innerHTML = '🚗 Insert Vehicle Data';
             btn.style.background = '#1877f2';
             btn.disabled = false;
-        }, 4000);
+        }, 5000);
     }
 })();
