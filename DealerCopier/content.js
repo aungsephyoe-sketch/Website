@@ -3,7 +3,7 @@
 function extractListing() {
     const data = {
         year: '', make: '', model: '', trim: '',
-        price: '', mileage: '', color: '', interiorColor: '', vin: '',
+        price: '', mileage: '', color: '', interiorColor: '', transmission: '', vin: '',
         description: '', images: [], videos: [], url: window.location.href
     };
 
@@ -21,6 +21,7 @@ function extractListing() {
                     data.trim   = data.trim   || (item.vehicleConfiguration || '');
                     data.color  = data.color  || (item.color || '');
                     data.interiorColor = data.interiorColor || (item.vehicleInteriorColor || item.vehicleInteriorType || '');
+                    data.transmission = data.transmission || (item.vehicleTransmission || '');
                     data.vin    = data.vin    || (item.vehicleIdentificationNumber || item.vin || '');
                     data.mileage = data.mileage || String(item.mileageFromOdometer?.value || item.mileageFromOdometer || '');
                     if (item.offers?.price) data.price = '$' + item.offers.price;
@@ -104,6 +105,31 @@ function extractListing() {
         '[class*="interior-color"]', '[class*="interiorColor"]',
         '[data-interior-color]', '[class*="int-color"]'
     ]);
+    if (!data.interiorColor) {
+        const bodyText = document.body.innerText;
+        const intMatch = bodyText.match(/interior\s+color[:\s]+([A-Za-z ]+)/i)
+                      || bodyText.match(/int\.\s*color[:\s]+([A-Za-z ]+)/i);
+        if (intMatch) data.interiorColor = intMatch[1].trim().split('\n')[0].trim();
+    }
+
+    if (!data.transmission) data.transmission = text([
+        '[class*="transmission"]', '[data-transmission]', '[class*="Transmission"]'
+    ]);
+    if (!data.transmission) {
+        const bodyText = document.body.innerText;
+        const txMatch = bodyText.match(/transmission[:\s]+([A-Za-z0-9\- ]+)/i);
+        if (txMatch) {
+            const raw = txMatch[1].trim().toLowerCase();
+            if (/manual|mt\b|6-speed manual|5-speed manual/.test(raw)) data.transmission = 'Manual';
+            else if (/auto|cvt|dct|pdk|tiptronic|sequential/.test(raw)) data.transmission = 'Automatic';
+        }
+    }
+    if (!data.transmission) {
+        const specText = Array.from(document.querySelectorAll('td, li, [class*="spec"], [class*="feature"]'))
+            .map(el => el.textContent.toLowerCase()).join(' ');
+        if (/\bmanual\b/.test(specText) && !/automatic/.test(specText)) data.transmission = 'Manual';
+        else data.transmission = 'Automatic';
+    }
 
     // Strategy 4: Parse title/H1 for year/make/model
     const makes = ['Toyota','Honda','Ford','Chevrolet','Chevy','Nissan','Hyundai','Kia',

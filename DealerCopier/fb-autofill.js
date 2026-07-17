@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 12
+// VERSION 13
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 12 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 13 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v12)';
+    btn.textContent = 'Fill (v13)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -80,13 +80,11 @@
     function findInputByLabel(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase();
-
             for (const el of document.querySelectorAll('input, textarea')) {
                 const a = (el.getAttribute('aria-label') || '').toLowerCase();
                 const p = (el.getAttribute('placeholder') || '').toLowerCase();
                 if (a.includes(lower) || p.includes(lower)) return el;
             }
-
             for (const lbl of document.querySelectorAll('label')) {
                 if (lbl.textContent.trim().toLowerCase().includes(lower)) {
                     const forId = lbl.getAttribute('for');
@@ -98,7 +96,6 @@
                     if (el) return el;
                 }
             }
-
             for (const el of document.querySelectorAll('span, div, p, legend')) {
                 if (el.textContent.trim().toLowerCase() === lower) {
                     let node = el.parentElement;
@@ -116,28 +113,24 @@
 
     async function fillText(labels, value) {
         if (value === null || value === undefined || value === '') return false;
-
         const el = await waitFor(() => findInputByLabel(labels), 5000);
         if (!el) { console.warn('[DM] Text input not found:', labels); return false; }
-
         console.log('[DM] fillText:', labels[0], '=', String(value).slice(0, 60));
         el.scrollIntoView({ block: 'center' });
-        await sleep(200);
+        await sleep(150);
         el.click();
         el.focus();
-        await sleep(300);
+        await sleep(200);
         setReact(el, '');
-        await sleep(100);
+        await sleep(80);
         setReact(el, value);
-
         if (String(el.value) !== String(value)) {
             try {
                 document.execCommand('selectAll', false, null);
                 document.execCommand('insertText', false, String(value));
             } catch(e) {}
         }
-
-        await sleep(300);
+        await sleep(200);
         return true;
     }
 
@@ -176,7 +169,6 @@
     async function pickOption(values) {
         const lowers = (Array.isArray(values) ? values : [values]).map(v => v.toLowerCase().trim());
         console.log('[DM] pickOption:', lowers[0]);
-
         const opt = await waitFor(() => {
             const selectors = ['[role="option"]', '[role="menuitem"]', 'li[tabindex]', '[data-value]', 'li'];
             for (const sel of selectors) {
@@ -192,11 +184,10 @@
             }
             return null;
         }, 6000);
-
         if (opt) {
             opt.scrollIntoView({ block: 'nearest' });
             opt.click();
-            await sleep(800);
+            await sleep(500);
             return true;
         }
         console.warn('[DM] option not found:', lowers[0]);
@@ -207,7 +198,6 @@
         if (!value) return false;
         const allValues = [value, ...(aliases || [])];
         console.log('[DM] fillDropdown:', labels[0], '=', value);
-
         for (const label of labels) {
             for (const sel of document.querySelectorAll('select')) {
                 const a = (sel.getAttribute('aria-label') || '').toLowerCase();
@@ -217,20 +207,19 @@
                     for (const o of sel.options) {
                         if (o.text.toLowerCase().includes(v.toLowerCase())) {
                             setReact(sel, o.value);
-                            await sleep(700);
+                            await sleep(500);
                             return true;
                         }
                     }
                 }
             }
         }
-
         const trigger = await waitFor(() => findTrigger(labels), 6000);
         if (!trigger) return false;
         trigger.scrollIntoView({ block: 'center' });
-        await sleep(400);
+        await sleep(300);
         trigger.click();
-        await sleep(1000);
+        await sleep(700);
         return await pickOption(allValues);
     }
 
@@ -271,59 +260,64 @@
     async function autofill(d) {
         btn.disabled = true;
         window.scrollTo(0, 0);
-        await sleep(800);
+        await sleep(500);
 
         const extColor = normalizeColor(d.color);
         const intColor = normalizeColor(d.interiorColor) || 'Black';
-        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, price: d.price, mileage: d.mileage, extColor, intColor }));
+        const transmission = d.transmission || 'Automatic';
+        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, price: d.price, mileage: d.mileage, extColor, intColor, transmission }));
 
         status('Vehicle type...');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
-        await sleep(2000);
+        await sleep(1000);
 
         status('Year...');
         await fillDropdown(['Year', 'Model year', 'year'], d.year);
-        await sleep(5000);
+        await sleep(3000);
 
         status('Make...');
         await fillDropdown(['Make', 'Brand', 'make', 'Vehicle make'], d.make);
-        await sleep(5000);
+        await sleep(3000);
 
         status('Model...');
         await fillText(['Model', 'model', 'Vehicle model'], d.model);
-        await sleep(1000);
+        await sleep(500);
 
         status('Mileage...');
         await fillText(['Mileage', 'mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
-        await sleep(500);
+        await sleep(300);
 
         status('Price...');
         await fillText(['Price', 'price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
-        await sleep(500);
+        await sleep(300);
 
         status('Body style...');
         await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model, d.trim));
-        await sleep(1500);
+        await sleep(700);
 
         status('Exterior color...');
         await fillDropdown(['Exterior color', 'exterior color', 'Color'], extColor);
-        await sleep(1500);
+        await sleep(700);
 
         status('Interior color...');
         await fillDropdown(['Interior color', 'interior color'], intColor);
-        await sleep(1500);
+        await sleep(700);
 
         status('Condition...');
         await fillDropdown(['Condition', 'Vehicle condition', 'condition'], 'Very good');
-        await sleep(1500);
+        await sleep(700);
+
+        status('Transmission...');
+        await fillDropdown(['Transmission', 'transmission'], transmission, ['Auto', 'Automatic Transmission', 'Manual Transmission']);
+        await sleep(700);
 
         status('Fuel type...');
         await fillDropdown(['Fuel type', 'Fuel', 'fuel type'], 'Gasoline');
-        await sleep(1500);
+        await sleep(700);
 
         status('Description...');
         await fillText(['Description', 'description', 'Tell buyers', 'Additional details'], d.description || '');
-        await sleep(500);
+        await sleep(300);
 
         status('Clean title...');
         await tickCheckbox(['clean title', 'Clean title']);
@@ -331,7 +325,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v12)';
+            btn.textContent = 'Fill (v13)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
