@@ -105,11 +105,27 @@ function extractListing() {
         '[class*="interior-color"]', '[class*="interiorColor"]',
         '[data-interior-color]', '[class*="int-color"]'
     ]);
+    // Scan spec table rows for interior color label + value
+    if (!data.interiorColor) {
+        const rows = document.querySelectorAll('tr, [class*="spec-row"], [class*="specRow"], [class*="detail-row"]');
+        for (const row of rows) {
+            const cells = row.querySelectorAll('td, th, [class*="label"], [class*="value"], span, div');
+            const texts = Array.from(cells).map(c => c.textContent.trim());
+            for (let i = 0; i < texts.length - 1; i++) {
+                if (/^int(erior)?\s*(color|colour)?$/i.test(texts[i])) {
+                    data.interiorColor = texts[i + 1]; break;
+                }
+            }
+            if (data.interiorColor) break;
+        }
+    }
+    // Fallback: body text regex
     if (!data.interiorColor) {
         const bodyText = document.body.innerText;
-        const intMatch = bodyText.match(/interior\s+color[:\s]+([A-Za-z ]+)/i)
-                      || bodyText.match(/int\.\s*color[:\s]+([A-Za-z ]+)/i);
-        if (intMatch) data.interiorColor = intMatch[1].trim().split('\n')[0].trim();
+        const intMatch = bodyText.match(/interior\s*(?:color|colour)[:\s]+([A-Za-z][A-Za-z ]{1,20})/i)
+                      || bodyText.match(/int\.?\s*color[:\s]+([A-Za-z][A-Za-z ]{1,20})/i)
+                      || bodyText.match(/interior[:\s]+([A-Za-z][A-Za-z ]{1,20})\s*(?:leather|cloth|vinyl|suede)/i);
+        if (intMatch) data.interiorColor = intMatch[1].trim().split(/\n/)[0].trim();
     }
 
     if (!data.transmission) data.transmission = text([

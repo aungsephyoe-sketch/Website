@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 13
+// VERSION 14
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 13 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 14 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v13)';
+    btn.textContent = 'Fill (v14)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -120,7 +120,7 @@
         await sleep(150);
         el.click();
         el.focus();
-        await sleep(200);
+        await sleep(150);
         setReact(el, '');
         await sleep(80);
         setReact(el, value);
@@ -130,7 +130,7 @@
                 document.execCommand('insertText', false, String(value));
             } catch(e) {}
         }
-        await sleep(200);
+        await sleep(150);
         return true;
     }
 
@@ -187,7 +187,7 @@
         if (opt) {
             opt.scrollIntoView({ block: 'nearest' });
             opt.click();
-            await sleep(500);
+            await sleep(400);
             return true;
         }
         console.warn('[DM] option not found:', lowers[0]);
@@ -207,7 +207,7 @@
                     for (const o of sel.options) {
                         if (o.text.toLowerCase().includes(v.toLowerCase())) {
                             setReact(sel, o.value);
-                            await sleep(500);
+                            await sleep(400);
                             return true;
                         }
                     }
@@ -217,9 +217,9 @@
         const trigger = await waitFor(() => findTrigger(labels), 6000);
         if (!trigger) return false;
         trigger.scrollIntoView({ block: 'center' });
-        await sleep(300);
+        await sleep(250);
         trigger.click();
-        await sleep(700);
+        await sleep(600);
         return await pickOption(allValues);
     }
 
@@ -229,13 +229,13 @@
             for (const cb of document.querySelectorAll('input[type="checkbox"]')) {
                 const lbl = cb.closest('label') || document.querySelector('label[for="' + cb.id + '"]');
                 const txt = ((lbl ? lbl.textContent : '') || cb.getAttribute('aria-label') || '').toLowerCase();
-                if (txt.includes(lower)) { if (!cb.checked) cb.click(); await sleep(200); return true; }
+                if (txt.includes(lower)) { if (!cb.checked) cb.click(); await sleep(150); return true; }
             }
             for (const cb of document.querySelectorAll('[role="checkbox"]')) {
                 const txt = (cb.getAttribute('aria-label') || cb.textContent || '').toLowerCase();
                 if (txt.includes(lower)) {
                     if (cb.getAttribute('aria-checked') !== 'true') cb.click();
-                    await sleep(200); return true;
+                    await sleep(150); return true;
                 }
             }
         }
@@ -260,7 +260,7 @@
     async function autofill(d) {
         btn.disabled = true;
         window.scrollTo(0, 0);
-        await sleep(500);
+        await sleep(400);
 
         const extColor = normalizeColor(d.color);
         const intColor = normalizeColor(d.interiorColor) || 'Black';
@@ -269,55 +269,58 @@
 
         status('Vehicle type...');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
-        await sleep(1000);
+        await waitFor(() => findTrigger(['Year', 'Model year', 'year']), 5000);
+        await sleep(200);
 
         status('Year...');
         await fillDropdown(['Year', 'Model year', 'year'], d.year);
-        await sleep(3000);
+        await waitFor(() => findTrigger(['Make', 'Brand', 'make', 'Vehicle make']), 5000);
+        await sleep(200);
 
         status('Make...');
         await fillDropdown(['Make', 'Brand', 'make', 'Vehicle make'], d.make);
-        await sleep(3000);
+        await waitFor(() => findInputByLabel(['Model', 'model', 'Vehicle model']), 5000);
+        await sleep(200);
 
         status('Model...');
         await fillText(['Model', 'model', 'Vehicle model'], d.model);
-        await sleep(500);
+        await sleep(400);
 
         status('Mileage...');
         await fillText(['Mileage', 'mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
-        await sleep(300);
+        await sleep(200);
 
         status('Price...');
         await fillText(['Price', 'price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
-        await sleep(300);
+        await sleep(200);
 
         status('Body style...');
         await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model, d.trim));
-        await sleep(700);
+        await sleep(500);
 
         status('Exterior color...');
         await fillDropdown(['Exterior color', 'exterior color', 'Color'], extColor);
-        await sleep(700);
+        await sleep(500);
 
         status('Interior color...');
         await fillDropdown(['Interior color', 'interior color'], intColor);
-        await sleep(700);
+        await sleep(500);
 
         status('Condition...');
         await fillDropdown(['Condition', 'Vehicle condition', 'condition'], 'Very good');
-        await sleep(700);
+        await sleep(500);
 
         status('Transmission...');
         await fillDropdown(['Transmission', 'transmission'], transmission, ['Auto', 'Automatic Transmission', 'Manual Transmission']);
-        await sleep(700);
+        await sleep(500);
 
         status('Fuel type...');
         await fillDropdown(['Fuel type', 'Fuel', 'fuel type'], 'Gasoline');
-        await sleep(700);
+        await sleep(500);
 
         status('Description...');
         await fillText(['Description', 'description', 'Tell buyers', 'Additional details'], d.description || '');
-        await sleep(300);
+        await sleep(200);
 
         status('Clean title...');
         await tickCheckbox(['clean title', 'Clean title']);
@@ -325,7 +328,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v13)';
+            btn.textContent = 'Fill (v14)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
