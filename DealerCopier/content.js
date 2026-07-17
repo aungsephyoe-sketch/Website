@@ -7,7 +7,7 @@ function extractListing() {
         description: '', images: [], videos: [], url: window.location.href
     };
 
-    // Strategy 1: Schema.org structured data
+    // ── Strategy 1: Schema.org structured data ──
     document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
         try {
             const json = JSON.parse(script.textContent);
@@ -35,7 +35,7 @@ function extractListing() {
         } catch(e) {}
     });
 
-    // Strategy 2: Meta / Open Graph tags
+    // ── Strategy 2: Meta / Open Graph tags ──
     const meta = (name) => {
         const el = document.querySelector(`meta[property="${name}"], meta[name="${name}"]`);
         return el ? el.getAttribute('content') : '';
@@ -46,7 +46,7 @@ function extractListing() {
         if (ogImg) data.images.push(ogImg);
     }
 
-    // Strategy 3: Common DOM patterns
+    // ── Strategy 3: Common DOM patterns ──
     const text = (selectors) => {
         for (const sel of selectors) {
             try {
@@ -105,7 +105,7 @@ function extractListing() {
         '[class*="interior-color"]', '[class*="interiorColor"]',
         '[data-interior-color]', '[class*="int-color"]'
     ]);
-    // Scan spec table rows for interior color label + value
+    // Scan spec table rows: find a row whose label cell contains "interior" and grab the value cell
     if (!data.interiorColor) {
         const rows = document.querySelectorAll('tr, [class*="spec-row"], [class*="specRow"], [class*="detail-row"]');
         for (const row of rows) {
@@ -131,6 +131,7 @@ function extractListing() {
     if (!data.transmission) data.transmission = text([
         '[class*="transmission"]', '[data-transmission]', '[class*="Transmission"]'
     ]);
+    // Fallback: scan page text for transmission
     if (!data.transmission) {
         const bodyText = document.body.innerText;
         const txMatch = bodyText.match(/transmission[:\s]+([A-Za-z0-9\- ]+)/i);
@@ -141,13 +142,14 @@ function extractListing() {
         }
     }
     if (!data.transmission) {
+        // Check for "manual" keyword anywhere prominent on page
         const specText = Array.from(document.querySelectorAll('td, li, [class*="spec"], [class*="feature"]'))
             .map(el => el.textContent.toLowerCase()).join(' ');
         if (/\bmanual\b/.test(specText) && !/automatic/.test(specText)) data.transmission = 'Manual';
         else data.transmission = 'Automatic';
     }
 
-    // Strategy 4: Parse title/H1 for year/make/model
+    // ── Strategy 4: Parse title/H1 for year/make/model ──
     const makes = ['Toyota','Honda','Ford','Chevrolet','Chevy','Nissan','Hyundai','Kia',
         'BMW','Mercedes','Audi','Volkswagen','VW','Subaru','Mazda','Jeep','Ram',
         'Dodge','Chrysler','Buick','GMC','Cadillac','Lincoln','Acura','Infiniti',
@@ -174,13 +176,17 @@ function extractListing() {
                 .trim()
                 .replace(/^[\s\-|]+/, '');
             if (afterYearMake) {
-                data.model = afterYearMake.split(/\s+/)[0];
+                const noiseWords = ['used','new','certified','pre-owned','pre','owned','vehicle','the','a','an'];
+                const words = afterYearMake.split(/\s+/);
+                const modelWord = words.find(w => !noiseWords.includes(w.toLowerCase()));
+                if (modelWord) data.model = modelWord;
             }
         }
         if (data.year && data.make && data.model) break;
     }
 
-    // Strategy 5: Trim from URL slug
+    // ── Strategy 5: Trim from URL slug ──
+    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
     if (!data.trim && data.model) {
         const slug = window.location.pathname.toLowerCase();
         const modelSlug = data.model.toLowerCase();
@@ -188,6 +194,7 @@ function extractListing() {
         if (modelIdx > -1) {
             const afterModel = slug.slice(modelIdx + modelSlug.length).replace(/^[-/]+/, '');
             const words = afterModel.split('-');
+            // Known noise words that appear after trim in dealer URLs
             const noiseWords = ['headup','head','display','blind','spot','assist','navigation',
                 'panor','carrollton','dallas','houston','tx','ca','fl','id','used','new',
                 'certified','pre','owned','detail','vehicle','listing','inventory'];
@@ -203,7 +210,7 @@ function extractListing() {
         }
     }
 
-    // Strategy 6: Trim from DOM
+    // ── Strategy 6: Trim from DOM ──
     if (!data.trim) {
         data.trim = text([
             '[class*="trim"]', '[data-trim]', '[class*="Trim"]',
@@ -211,7 +218,7 @@ function extractListing() {
         ]);
     }
 
-    // Strategy 7: Collect gallery images
+    // ── Strategy 7: Collect gallery images ──
     if (data.images.length < 3) {
         document.querySelectorAll([
             '.vehicle-images img', '.gallery img', '[class*="photo"] img',
@@ -228,7 +235,7 @@ function extractListing() {
     }
     data.images = [...new Set(data.images)].slice(0, 20);
 
-    // Strategy 8: Description
+    // ── Strategy 8: Description (strip HTML) ──
     function stripHtml(html) {
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
@@ -245,7 +252,7 @@ function extractListing() {
         data.description = stripHtml(data.description);
     }
 
-    // Strategy 9: Collect videos
+    // ── Strategy 9: Collect videos ──
     document.querySelectorAll('video').forEach(v => {
         const src = v.src || v.querySelector('source')?.src;
         if (src && src.startsWith('http') && !data.videos.includes(src)) data.videos.push(src);
