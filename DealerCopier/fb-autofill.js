@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 8
+// VERSION 9
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 8 LOADED', 'background:#1877f2;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 9 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.innerHTML = '🚗 Fill (v8)';
+    btn.innerHTML = '🚗 Fill (v9)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -40,15 +40,12 @@
         return null;
     }
 
-    // ── REACT-SAFE VALUE SETTER ──────────────────────────────────────────
     function setReact(el, value) {
         if (!el) return;
         try {
             const tag = el.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') {
-                const proto = tag === 'TEXTAREA'
-                    ? HTMLTextAreaElement.prototype
-                    : HTMLInputElement.prototype;
+                const proto = tag === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
                 const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
                 if (setter) setter.call(el, value);
                 el.dispatchEvent(new Event('input',  { bubbles: true }));
@@ -57,6 +54,9 @@
                 const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
                 if (setter) setter.call(el, value);
                 el.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                el.dispatchEvent(new Event('input',  { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
             }
         } catch(e) {
             try { el.dispatchEvent(new Event('input',  { bubbles: true })); } catch(_) {}
@@ -64,48 +64,71 @@
         }
     }
 
-    // ── COLOR NORMALIZATION ───────────────────────────────────────────────
     function normalizeColor(raw) {
         if (!raw) return '';
         const r = raw.toLowerCase();
-        if (/black/.test(r))                          return 'Black';
-        if (/white|pearl|ivory/.test(r))              return 'White';
-        if (/silver|chrome|aluminum|platinum/.test(r))return 'Silver';
-        if (/gray|grey|graphite|charcoal/.test(r))    return 'Gray';
-        if (/red|crimson|burgundy|maroon/.test(r))    return 'Red';
-        if (/blue|navy|cobalt|azure/.test(r))         return 'Blue';
-        if (/green|olive|forest/.test(r))             return 'Green';
-        if (/orange/.test(r))                         return 'Orange';
-        if (/yellow|gold(?!en)/.test(r))              return 'Yellow';
-        if (/brown|tan|copper|bronze/.test(r))        return 'Brown';
-        if (/beige|cream|sand|champagne/.test(r))     return 'Beige';
-        if (/purple|violet|lavender/.test(r))         return 'Purple';
-        if (/golden|gold/.test(r))                    return 'Gold';
+        if (/black/.test(r))                           return 'Black';
+        if (/white|pearl|ivory/.test(r))               return 'White';
+        if (/silver|chrome|aluminum|platinum/.test(r)) return 'Silver';
+        if (/gray|grey|graphite|charcoal/.test(r))     return 'Gray';
+        if (/red|crimson|burgundy|maroon/.test(r))     return 'Red';
+        if (/blue|navy|cobalt|azure/.test(r))          return 'Blue';
+        if (/green|olive|forest/.test(r))              return 'Green';
+        if (/orange/.test(r))                          return 'Orange';
+        if (/yellow/.test(r))                          return 'Yellow';
+        if (/brown|tan|copper|bronze/.test(r))         return 'Brown';
+        if (/beige|cream|sand|champagne/.test(r))      return 'Beige';
+        if (/purple|violet|lavender/.test(r))          return 'Purple';
+        if (/gold/.test(r))                            return 'Gold';
         return raw;
     }
 
-    // ── FIND DROPDOWN TRIGGER ────────────────────────────────────────────────
+    async function fillText(labels, value) {
+        if (!value) return false;
+        const el = await waitFor(() => {
+            for (const label of labels) {
+                const lower = label.toLowerCase();
+                for (const el of document.querySelectorAll('input, textarea')) {
+                    const a = (el.getAttribute('aria-label') || '').toLowerCase();
+                    const p = (el.getAttribute('placeholder') || '').toLowerCase();
+                    if (a.includes(lower) || p.includes(lower)) return el;
+                }
+            }
+            return null;
+        }, 5000);
+        if (!el) { console.warn('[DM] Text input not found:', labels); return false; }
+        console.log('[DM] fillText:', labels[0], '=', String(value).slice(0, 40));
+        el.scrollIntoView({ block: 'center' });
+        await sleep(200);
+        el.click();
+        el.focus();
+        await sleep(200);
+        setReact(el, value);
+        if (String(el.value) !== String(value)) {
+            try { document.execCommand('selectAll', false, null); document.execCommand('insertText', false, value); } catch(e) {}
+        }
+        await sleep(300);
+        return true;
+    }
+
     function findTrigger(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase().trim();
-            for (const sel of document.querySelectorAll('select')) {
-                const a = (sel.getAttribute('aria-label') || '').toLowerCase();
-                const first = (sel.options[0]?.text || '').toLowerCase();
-                if (a.includes(lower) || first.includes(lower)) return sel;
+            for (const el of document.querySelectorAll('select')) {
+                const a = (el.getAttribute('aria-label') || '').toLowerCase();
+                const first = (el.options[0]?.text || '').toLowerCase();
+                if (a.includes(lower) || first.includes(lower)) return el;
             }
             for (const el of document.querySelectorAll('[aria-label]')) {
                 if (el.getAttribute('aria-label').toLowerCase().trim() === lower) return el;
             }
             for (const el of document.querySelectorAll('[role="combobox"],[role="button"],[role="listbox"]')) {
-                const txt = el.textContent.trim().toLowerCase();
-                if (txt === lower) return el;
+                if (el.textContent.trim().toLowerCase() === lower) return el;
             }
-            for (const el of document.querySelectorAll('span, div')) {
+            for (const el of document.querySelectorAll('span,div,p,label')) {
                 if (el.textContent.trim().toLowerCase() === lower) {
-                    const anc = el.closest('[role="button"]')
-                             || el.closest('[role="combobox"]')
-                             || el.closest('button')
-                             || el.closest('select');
+                    const anc = el.closest('[role="button"]') || el.closest('[role="combobox"]')
+                              || el.closest('button') || el.closest('select');
                     if (anc) return anc;
                 }
             }
@@ -120,89 +143,31 @@
         return null;
     }
 
-    // ── FIND TEXT INPUT ──────────────────────────────────────────────────────
-    function findInput(labels) {
-        for (const label of labels) {
-            const lower = label.toLowerCase();
-            for (const el of document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), textarea')) {
-                if (!el.offsetParent) continue;
-                const a = (el.getAttribute('aria-label') || '').toLowerCase();
-                const p = (el.getAttribute('placeholder') || '').toLowerCase();
-                if (a.includes(lower) || p.includes(lower)) return el;
-            }
-        }
-        return null;
-    }
-
-    // ── PICK OPTION FROM OPEN DROPDOWN ───────────────────────────────────────
     async function pickOption(values) {
         const lowers = (Array.isArray(values) ? values : [values]).map(v => v.toLowerCase().trim());
-        console.log('[DM] Looking for option:', lowers[0]);
-
+        console.log('[DM] pickOption:', lowers[0]);
         const opt = await waitFor(() => {
             for (const sel of ['[role="option"]', '[role="menuitem"]', 'li[tabindex]', '[data-value]', 'li']) {
                 for (const el of document.querySelectorAll(sel)) {
-                    if (!el.offsetParent) continue;
                     const txt = el.textContent.trim().toLowerCase();
                     for (const lower of lowers) {
                         if (txt === lower || txt.startsWith(lower) || txt.includes(lower)) {
-                            console.log('[DM] ✓ Option found:', txt);
-                            return el;
+                            console.log('[DM] ✓ option:', txt); return el;
                         }
                     }
                 }
             }
             return null;
         }, 6000);
-
-        if (opt) {
-            opt.scrollIntoView({ block: 'nearest' });
-            opt.click();
-            await sleep(700);
-            return true;
-        }
-        console.warn('[DM] ✗ Option not found for:', lowers[0]);
+        if (opt) { opt.scrollIntoView({ block: 'nearest' }); opt.click(); await sleep(800); return true; }
+        console.warn('[DM] ✗ option not found:', lowers[0]);
         return false;
     }
 
-    // ── FILL A TEXT INPUT ──────────────────────────────────────────────────
-    async function fillText(labels, value) {
-        if (!value) return false;
-
-        const el = await waitFor(() => findInput(labels), 5000);
-        if (!el) {
-            console.warn('[DM] Text input not found:', labels);
-            return false;
-        }
-
-        console.log('[DM] Filling text:', labels[0], '=', value.slice(0, 30));
-        el.scrollIntoView({ block: 'center' });
-        await sleep(200);
-        el.click();
-        el.focus();
-        await sleep(200);
-
-        setReact(el, value);
-        await sleep(100);
-
-        if (el.value !== value) {
-            try {
-                el.select?.();
-                document.execCommand('selectAll', false, null);
-                document.execCommand('insertText', false, value);
-            } catch(e) {}
-        }
-
-        await sleep(300);
-        return true;
-    }
-
-    // ── FILL A DROPDOWN ──────────────────────────────────────────────────────
     async function fillDropdown(labels, value, aliases) {
         if (!value) return false;
         const allValues = [value, ...(aliases || [])];
-        console.log('[DM] Filling dropdown:', labels[0], '=', value);
-
+        console.log('[DM] fillDropdown:', labels[0], '=', value);
         for (const label of labels) {
             for (const sel of document.querySelectorAll('select')) {
                 const a = (sel.getAttribute('aria-label') || '').toLowerCase();
@@ -211,28 +176,22 @@
                 for (const v of allValues) {
                     for (const o of sel.options) {
                         if (o.text.toLowerCase().includes(v.toLowerCase())) {
-                            console.log('[DM] ✓ <select> filled:', o.text);
-                            setReact(sel, o.value);
-                            await sleep(700);
-                            return true;
+                            console.log('[DM] ✓ <select>:', o.text);
+                            setReact(sel, o.value); await sleep(700); return true;
                         }
                     }
                 }
             }
         }
-
         const trigger = await waitFor(() => findTrigger(labels), 6000);
         if (!trigger) return false;
-
         trigger.scrollIntoView({ block: 'center' });
-        await sleep(300);
+        await sleep(400);
         trigger.click();
         await sleep(1000);
-
         return await pickOption(allValues);
     }
 
-    // ── TICK A CHECKBOX ────────────────────────────────────────────────────
     async function tickCheckbox(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase();
@@ -268,9 +227,8 @@
         btn.disabled = true;
         window.scrollTo(0, 0);
         await sleep(800);
-
         const color = normalizeColor(d.color);
-        console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, price: d.price, mileage: d.mileage, color, raw_color: d.color }));
+        console.log('[DM] Data:', { year: d.year, make: d.make, model: d.model, price: d.price, mileage: d.mileage, color, raw_color: d.color });
 
         status('⏳ Vehicle type…');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
@@ -285,16 +243,20 @@
         await sleep(5000);
 
         status('⏳ Model…');
-        await fillDropdown(['Model', 'Vehicle model', 'model'], d.model);
-        await sleep(3000);
-
-        status('⏳ Price…');
-        await fillText(['Price', 'Asking price', 'price'], (d.price || '').replace(/[^\d.]/g, ''));
-        await sleep(500);
+        await fillText(['Model', 'model', 'Vehicle model'], d.model);
+        await sleep(1000);
 
         status('⏳ Mileage…');
-        await fillText(['Mileage', 'Miles', 'Odometer', 'mileage'], (d.mileage || '').replace(/[^\d]/g, ''));
+        await fillText(['Mileage', 'mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
         await sleep(500);
+
+        status('⏳ Price…');
+        await fillText(['Price', 'price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
+        await sleep(500);
+
+        status('⏳ Body style…');
+        await fillDropdown(['Body style', 'body style', 'Body type'], guessBodyStyle(d.model));
+        await sleep(1500);
 
         status('⏳ Exterior color…');
         await fillDropdown(['Exterior color', 'exterior color', 'Color'], color);
@@ -302,10 +264,6 @@
 
         status('⏳ Interior color…');
         await fillDropdown(['Interior color', 'interior color'], color);
-        await sleep(1500);
-
-        status('⏳ Body style…');
-        await fillDropdown(['Body style', 'Body type', 'body style'], guessBodyStyle(d.model));
         await sleep(1500);
 
         status('⏳ Condition…');
@@ -317,7 +275,7 @@
         await sleep(1500);
 
         status('⏳ Description…');
-        await fillText(['Description', 'Tell buyers', 'Additional details', 'description'], d.description || '');
+        await fillText(['Description', 'description', 'Tell buyers', 'Additional details'], d.description || '');
         await sleep(500);
 
         status('⏳ Clean title…');
@@ -326,7 +284,7 @@
         btn.innerHTML = '✅ Done! Review & submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.innerHTML = '🚗 Fill (v8)';
+            btn.innerHTML = '🚗 Fill (v9)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
