@@ -18,7 +18,7 @@
     btn.addEventListener('click', () => {
         chrome.storage.local.get('dealerListing', ({ dealerListing }) => {
             if (!dealerListing) {
-                alert('No data found.\nGo to a dealer page, click the extension icon, then "Auto-Fill Marketplace".');
+                alert('No data found.\nGo to a dealer page first, click the extension, then "Auto-Fill Marketplace".');
                 return;
             }
             autofill(dealerListing);
@@ -30,116 +30,101 @@
     async function waitUntil(fn, timeout = 5000) {
         const start = Date.now();
         while (Date.now() - start < timeout) {
-            const result = fn();
-            if (result) return result;
-            await sleep(200);
+            const v = fn();
+            if (v) return v;
+            await sleep(150);
         }
         return null;
     }
 
-    function findSelect(hints) {
+    function findEl(hints) {
         for (const hint of hints) {
-            for (const sel of document.querySelectorAll('select')) {
-                const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
-                if (lbl.includes(hint.toLowerCase())) return sel;
+            const lower = hint.toLowerCase();
+            for (const el of document.querySelectorAll(
+                'input, textarea, select, [role="combobox"], [role="listbox"], [role="button"]'
+            )) {
+                const lbl = (
+                    el.getAttribute('aria-label') ||
+                    el.getAttribute('placeholder') || ''
+                ).toLowerCase();
+                if (lbl.includes(lower)) return el;
             }
         }
         return null;
     }
 
-    function findInput(hints) {
-        for (const hint of hints) {
-            for (const el of document.querySelectorAll('input, textarea')) {
-                const lbl = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').toLowerCase();
-                if (lbl.includes(hint.toLowerCase())) return el;
-            }
-        }
-        return null;
-    }
-
-    function setSelect(sel, value) {
-        for (const opt of sel.options) {
-            const text = opt.text.trim().toLowerCase();
-            const val = opt.value.trim().toLowerCase();
-            const search = value.toLowerCase();
-            if (text === search || text.startsWith(search) || val === search) {
-                const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-                nativeSetter.call(sel, opt.value);
-                sel.dispatchEvent(new Event('input', { bubbles: true }));
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                return true;
-            }
-        }
-        for (const opt of sel.options) {
-            if (opt.text.trim().toLowerCase().includes(value.toLowerCase())) {
-                const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-                nativeSetter.call(sel, opt.value);
-                sel.dispatchEvent(new Event('input', { bubbles: true }));
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function setInput(el, value) {
-        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    function setReactValue(el, value) {
+        const proto = el.tagName === 'TEXTAREA'
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
         const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
         if (setter) setter.call(el, value);
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    async function pickOption(value, timeout = 3000) {
-        const picked = await waitUntil(() => {
-            for (const opt of document.querySelectorAll('[role="option"], [role="listitem"], li[tabindex], li[role="option"]')) {
-                if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) return opt;
-            }
-            return null;
-        }, timeout);
-        if (picked) { picked.click(); await sleep(600); return true; }
-        return false;
-    }
-
-    async function fillCascadeSelect(hints, value, waitAfter = 1500) {
+    async function fillText(hints, value) {
         if (!value) return false;
-        const sel = await waitUntil(() => {
-            const s = findSelect(hints);
-            if (s && s.options.length > 2) return s;
-            return null;
-        }, 6000);
-        if (!sel) return false;
-        const ok = setSelect(sel, value);
-        if (ok) { await sleep(waitAfter); return true; }
-        return false;
-    }
-
-    async function fillCustomDropdown(hints, value) {
-        if (!value) return false;
-        const sel = findSelect(hints);
-        if (sel && sel.options.length > 1) {
-            if (setSelect(sel, value)) { await sleep(600); return true; }
-        }
-        let trigger = null;
-        for (const hint of hints) {
-            trigger = document.querySelector(`[aria-label*="${hint}" i]`);
-            if (trigger) break;
-        }
-        if (!trigger) return false;
-        trigger.click();
-        await sleep(1000);
-        return await pickOption(value, 2000);
-    }
-
-    async function fillTextField(hints, value) {
-        if (!value) return false;
-        const el = findInput(hints);
+        const el = findEl(hints);
         if (!el) return false;
         el.focus();
-        await sleep(100);
-        setInput(el, value);
-        await sleep(300);
+        el.click();
+        await sleep(150);
+        setReactValue(el, value);
+        await sleep(200);
         return true;
+    }
+
+    async function fillDropdown(hints, value) {
+        if (!value) return false;
+
+        // Try native <select> first
+        for (const hint of hints) {
+            for (const sel of document.querySelectorAll('select')) {
+                const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
+                if (!lbl.includes(hint.toLowerCase())) continue;
+                for (const opt of sel.options) {
+                    if (opt.text.toLowerCase().includes(value.toLowerCase())) {
+                        const s = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+                        s.call(sel, opt.value);
+                        sel.dispatchEvent(new Event('input', { bubbles: true }));
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        await sleep(400);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Custom React dropdown
+        const field = findEl(hints);
+        if (!field) return false;
+
+        field.click();
+        field.focus();
+        await sleep(300);
+        setReactValue(field, value);
+        field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: value[0] }));
+        field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: value[0] }));
+        await sleep(1000);
+
+        const opt = await waitUntil(() => {
+            for (const el of document.querySelectorAll(
+                '[role="option"], [role="listitem"], li[tabindex], li[role="option"]'
+            )) {
+                if (el.textContent.trim().toLowerCase().includes(value.toLowerCase())) return el;
+            }
+            return null;
+        }, 3000);
+
+        if (opt) { opt.click(); await sleep(700); return true; }
+
+        for (const el of document.querySelectorAll('li, [role="option"]')) {
+            if (el.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
+                el.click(); await sleep(500); return true;
+            }
+        }
+        return false;
     }
 
     async function tickCheckbox(hints) {
@@ -178,56 +163,45 @@
     async function autofill(d) {
         btn.innerHTML = '⏳ Filling…';
         btn.disabled = true;
-
         window.scrollTo(0, 0);
-        await sleep(600);
+        await sleep(800);
 
-        // Vehicle type → Car
-        await fillCascadeSelect(['Vehicle type', 'Type'], 'Car', 1000);
-        await sleep(500);
+        await fillDropdown(['Vehicle type', 'Type'], 'Car');
+        await sleep(1000);
 
-        // Year — wait 2s after for Make options to load
-        await fillCascadeSelect(['Year', 'Model year'], d.year, 2000);
+        await fillDropdown(['Year', 'Model year'], d.year);
+        await sleep(2500);
 
-        // Make — wait 2s after for Model options to load
-        await fillCascadeSelect(['Make', 'Brand'], d.make, 2000);
+        await fillDropdown(['Make', 'Brand'], d.make);
+        await sleep(2500);
 
-        // Model
-        await fillCascadeSelect(['Model'], d.model, 1000);
+        await fillDropdown(['Model'], d.model);
+        await sleep(1000);
 
-        // Price
-        await fillTextField(['Price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
+        await fillText(['Price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
         await sleep(300);
 
-        // Mileage
-        await fillTextField(['Mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
+        await fillText(['Mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
         await sleep(300);
 
-        // Exterior color
-        await fillCustomDropdown(['Exterior color', 'Color'], d.color);
-        await sleep(500);
+        await fillDropdown(['Exterior color', 'Color'], d.color);
+        await sleep(800);
 
-        // Interior color
-        await fillCustomDropdown(['Interior color'], d.color);
-        await sleep(500);
+        await fillDropdown(['Interior color'], d.color);
+        await sleep(800);
 
-        // Body style
-        await fillCustomDropdown(['Body style', 'Body type'], guessBodyStyle(d.model));
-        await sleep(500);
+        await fillDropdown(['Body style', 'Body type'], guessBodyStyle(d.model));
+        await sleep(800);
 
-        // Condition — always Very good
-        await fillCustomDropdown(['Condition', 'Vehicle condition'], 'Very good');
-        await sleep(500);
+        await fillDropdown(['Condition', 'Vehicle condition'], 'Very good');
+        await sleep(800);
 
-        // Fuel type — always Gasoline
-        await fillCustomDropdown(['Fuel', 'Fuel type'], 'Gasoline');
-        await sleep(500);
+        await fillDropdown(['Fuel', 'Fuel type'], 'Gasoline');
+        await sleep(800);
 
-        // Description
-        await fillTextField(['Description', 'Tell buyers', 'Additional'], d.description || '');
+        await fillText(['Description', 'Tell buyers', 'Additional'], d.description || '');
         await sleep(300);
 
-        // Clean title
         await tickCheckbox(['clean title', 'Clean title']);
 
         btn.innerHTML = '✅ Done! Scroll up to review';
