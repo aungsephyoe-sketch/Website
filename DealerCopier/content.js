@@ -124,13 +124,14 @@ function extractListing() {
                 .replace(new RegExp(data.make, 'i'), '')
                 .trim()
                 .replace(/^[\s\-|]+/, '');
-            if (afterYearMake) data.model = afterYearMake.split(/\s+/)[0];
+            if (afterYearMake) {
+                data.model = afterYearMake.split(/\s+/)[0];
+            }
         }
         if (data.year && data.make && data.model) break;
     }
 
     // ── Strategy 5: Trim from URL slug ──
-    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
     if (!data.trim && data.model) {
         const slug = window.location.pathname.toLowerCase();
         const modelSlug = data.model.toLowerCase();
