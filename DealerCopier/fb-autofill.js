@@ -27,115 +27,119 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    async function waitFor(selectorFn, timeout = 4000) {
+    async function waitUntil(fn, timeout = 5000) {
         const start = Date.now();
         while (Date.now() - start < timeout) {
-            const el = selectorFn();
-            if (el) return el;
-            await sleep(150);
+            const result = fn();
+            if (result) return result;
+            await sleep(200);
         }
         return null;
     }
 
-    function findEl(hints) {
-        for (const hint of hints) {
-            const lower = hint.toLowerCase();
-            for (const el of document.querySelectorAll('input, textarea, select, [role="combobox"], [role="button"]')) {
-                const label = (
-                    el.getAttribute('aria-label') ||
-                    el.getAttribute('placeholder') ||
-                    el.getAttribute('aria-labelledby') || ''
-                ).toLowerCase();
-                if (label.includes(lower)) return el;
-            }
-            for (const lbl of document.querySelectorAll('label')) {
-                if (lbl.textContent.trim().toLowerCase().includes(lower)) {
-                    const id = lbl.getAttribute('for');
-                    const el = id ? document.getElementById(id) : lbl.querySelector('input,select,textarea');
-                    if (el) return el;
-                }
-            }
-        }
-        return null;
-    }
-
-    function setReactValue(el, value) {
-        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-        if (setter) setter.call(el, value);
-        ['input', 'change'].forEach(type => el.dispatchEvent(new Event(type, { bubbles: true })));
-    }
-
-    async function typeIntoField(hints, value) {
-        if (!value) return false;
-        const el = findEl(hints);
-        if (!el) return false;
-        el.focus();
-        el.click();
-        await sleep(200);
-        setReactValue(el, value);
-        await sleep(300);
-        return true;
-    }
-
-    async function fillDropdown(hints, value) {
-        if (!value) return false;
-
-        // 1. Try native <select>
+    function findSelect(hints) {
         for (const hint of hints) {
             for (const sel of document.querySelectorAll('select')) {
                 const lbl = (sel.getAttribute('aria-label') || '').toLowerCase();
-                if (!lbl.includes(hint.toLowerCase())) continue;
-                for (const opt of sel.options) {
-                    if (opt.text.toLowerCase().includes(value.toLowerCase())) {
-                        sel.value = opt.value;
-                        sel.dispatchEvent(new Event('change', { bubbles: true }));
-                        await sleep(400);
-                        return true;
-                    }
-                }
+                if (lbl.includes(hint.toLowerCase())) return sel;
             }
         }
+        return null;
+    }
 
-        // 2. Find field, type to open suggestions
-        let field = findEl(hints);
-        if (!field) return false;
-
-        field.click();
-        field.focus();
-        await sleep(400);
-
-        setReactValue(field, value);
-        await sleep(100);
-        field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: value[0] }));
-        field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: value[0] }));
-        await sleep(800);
-
-        // Wait for and click matching option
-        const picked = await waitFor(() => {
-            const opts = document.querySelectorAll('[role="option"], [role="listitem"]');
-            for (const opt of opts) {
-                if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) return opt;
+    function findInput(hints) {
+        for (const hint of hints) {
+            for (const el of document.querySelectorAll('input, textarea')) {
+                const lbl = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').toLowerCase();
+                if (lbl.includes(hint.toLowerCase())) return el;
             }
-            return null;
-        }, 3000);
-
-        if (picked) {
-            picked.click();
-            await sleep(600);
-            return true;
         }
+        return null;
+    }
 
-        // 3. Fallback: any visible list item
-        const allOpts = document.querySelectorAll('li, [role="option"], [data-value]');
-        for (const opt of allOpts) {
-            if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
-                opt.click();
-                await sleep(500);
+    function setSelect(sel, value) {
+        for (const opt of sel.options) {
+            const text = opt.text.trim().toLowerCase();
+            const val = opt.value.trim().toLowerCase();
+            const search = value.toLowerCase();
+            if (text === search || text.startsWith(search) || val === search) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+                nativeSetter.call(sel, opt.value);
+                sel.dispatchEvent(new Event('input', { bubbles: true }));
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+            }
+        }
+        for (const opt of sel.options) {
+            if (opt.text.trim().toLowerCase().includes(value.toLowerCase())) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+                nativeSetter.call(sel, opt.value);
+                sel.dispatchEvent(new Event('input', { bubbles: true }));
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
                 return true;
             }
         }
         return false;
+    }
+
+    function setInput(el, value) {
+        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (setter) setter.call(el, value);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    async function pickOption(value, timeout = 3000) {
+        const picked = await waitUntil(() => {
+            for (const opt of document.querySelectorAll('[role="option"], [role="listitem"], li[tabindex], li[role="option"]')) {
+                if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) return opt;
+            }
+            return null;
+        }, timeout);
+        if (picked) { picked.click(); await sleep(600); return true; }
+        return false;
+    }
+
+    async function fillCascadeSelect(hints, value, waitAfter = 1500) {
+        if (!value) return false;
+        const sel = await waitUntil(() => {
+            const s = findSelect(hints);
+            if (s && s.options.length > 2) return s;
+            return null;
+        }, 6000);
+        if (!sel) return false;
+        const ok = setSelect(sel, value);
+        if (ok) { await sleep(waitAfter); return true; }
+        return false;
+    }
+
+    async function fillCustomDropdown(hints, value) {
+        if (!value) return false;
+        const sel = findSelect(hints);
+        if (sel && sel.options.length > 1) {
+            if (setSelect(sel, value)) { await sleep(600); return true; }
+        }
+        let trigger = null;
+        for (const hint of hints) {
+            trigger = document.querySelector(`[aria-label*="${hint}" i]`);
+            if (trigger) break;
+        }
+        if (!trigger) return false;
+        trigger.click();
+        await sleep(1000);
+        return await pickOption(value, 2000);
+    }
+
+    async function fillTextField(hints, value) {
+        if (!value) return false;
+        const el = findInput(hints);
+        if (!el) return false;
+        el.focus();
+        await sleep(100);
+        setInput(el, value);
+        await sleep(300);
+        return true;
     }
 
     async function tickCheckbox(hints) {
@@ -168,51 +172,62 @@
         if (/camry|accord|civic|corolla|altima|sentra|malibu|sonata|elantra|jetta|passat/.test(m)) return 'Sedan';
         if (/mustang|camaro|challenger|corvette/.test(m)) return 'Coupe';
         if (/odyssey|sienna|pacifica|caravan|sedona/.test(m)) return 'Minivan';
-        return '';
+        return 'SUV';
     }
 
     async function autofill(d) {
-        btn.innerHTML = '⏳ Filling… please wait';
+        btn.innerHTML = '⏳ Filling…';
         btn.disabled = true;
+
         window.scrollTo(0, 0);
-        await sleep(800);
-
-        await waitFor(() => findEl(['Year', 'Model year']), 5000);
-        await fillDropdown(['Year', 'Model year'], d.year);
-        await sleep(800);
-
-        await waitFor(() => findEl(['Make', 'Brand']), 5000);
-        await fillDropdown(['Make', 'Brand'], d.make);
-        await sleep(800);
-
-        await waitFor(() => findEl(['Model']), 5000);
-        await fillDropdown(['Model'], d.model);
-        await sleep(800);
-
-        await typeIntoField(['Price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
-        await sleep(400);
-
-        await typeIntoField(['Mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
-        await sleep(400);
-
-        await fillDropdown(['Exterior color', 'Color'], d.color);
         await sleep(600);
 
-        await fillDropdown(['Interior color'], d.color);
-        await sleep(600);
+        // Vehicle type → Car
+        await fillCascadeSelect(['Vehicle type', 'Type'], 'Car', 1000);
+        await sleep(500);
 
-        const bodyStyle = guessBodyStyle(d.model);
-        if (bodyStyle) { await fillDropdown(['Body style', 'Body type'], bodyStyle); await sleep(600); }
+        // Year — wait 2s after for Make options to load
+        await fillCascadeSelect(['Year', 'Model year'], d.year, 2000);
 
-        await fillDropdown(['Condition', 'Vehicle condition'], 'Very good');
-        await sleep(600);
+        // Make — wait 2s after for Model options to load
+        await fillCascadeSelect(['Make', 'Brand'], d.make, 2000);
 
-        await fillDropdown(['Fuel', 'Fuel type'], 'Gasoline');
-        await sleep(600);
+        // Model
+        await fillCascadeSelect(['Model'], d.model, 1000);
 
-        await typeIntoField(['Description', 'Tell buyers', 'Additional'], d.description || '');
-        await sleep(400);
+        // Price
+        await fillTextField(['Price', 'Asking price'], (d.price || '').replace(/[^\d.]/g, ''));
+        await sleep(300);
 
+        // Mileage
+        await fillTextField(['Mileage', 'Miles', 'Odometer'], (d.mileage || '').replace(/[^\d]/g, ''));
+        await sleep(300);
+
+        // Exterior color
+        await fillCustomDropdown(['Exterior color', 'Color'], d.color);
+        await sleep(500);
+
+        // Interior color
+        await fillCustomDropdown(['Interior color'], d.color);
+        await sleep(500);
+
+        // Body style
+        await fillCustomDropdown(['Body style', 'Body type'], guessBodyStyle(d.model));
+        await sleep(500);
+
+        // Condition — always Very good
+        await fillCustomDropdown(['Condition', 'Vehicle condition'], 'Very good');
+        await sleep(500);
+
+        // Fuel type — always Gasoline
+        await fillCustomDropdown(['Fuel', 'Fuel type'], 'Gasoline');
+        await sleep(500);
+
+        // Description
+        await fillTextField(['Description', 'Tell buyers', 'Additional'], d.description || '');
+        await sleep(300);
+
+        // Clean title
         await tickCheckbox(['clean title', 'Clean title']);
 
         btn.innerHTML = '✅ Done! Scroll up to review';
