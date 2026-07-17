@@ -100,16 +100,19 @@ function extractListing() {
         }
     }
 
-    // ── Label/value scanner: finds a visible label element then reads the adjacent value ──
+    // ── Label/value scanner: finds a visible label element then reads the sibling/child value ──
     // Works for Carfax Vehicle Highlights grid, AutoTrader spec tables, dealer pages, etc.
     function findLabelValue(labelPattern) {
+        // Walk every small element; when its text matches the label, grab the adjacent value
         const candidates = document.querySelectorAll(
             'p, span, div, td, th, dt, li, [class*="label"], [class*="title"], [class*="heading"]'
         );
+        const INLINE = new Set(['STRONG','B','EM','I','SPAN','A','BR','ABBR','SMALL']);
         for (const el of candidates) {
-            const own = (el.childElementCount === 0 || el.tagName === 'DT')
-                ? el.textContent.trim()
-                : '';
+            // Match leaf-like elements AND elements whose only children are inline formatting tags
+            const isLeafLike = el.childElementCount === 0 || el.tagName === 'DT'
+                || Array.from(el.children).every(c => INLINE.has(c.tagName));
+            const own = isLeafLike ? el.textContent.trim() : '';
             if (!own || !labelPattern.test(own)) continue;
 
             // 1. Next sibling element
@@ -127,7 +130,7 @@ function extractListing() {
                 if (t && t.length < 60) return t;
             }
 
-            // 3. Grandparent scan (Carfax highlight grid)
+            // 3. Grandparent scan (Carfax highlight grid: label div and value div share a wrapper)
             const gp = el.parentElement?.parentElement;
             if (gp) {
                 const children = Array.from(gp.children);
@@ -175,12 +178,14 @@ function extractListing() {
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
     // Transmission — read explicit label first, then fall back carefully
+    // Priority: exact label scan → data attribute → itemprop → body text regex → default Automatic
     if (!data.transmission) data.transmission = findLabelValue(/^transmission$/i);
     if (!data.transmission) {
         const el = document.querySelector('[data-transmission], [itemprop="vehicleTransmission"]');
         if (el) data.transmission = el.textContent.trim() || el.getAttribute('content') || '';
     }
     if (!data.transmission) {
+        // Regex against full page text — but require "manual" without "automatic" in same phrase
         const bodyText = document.body.innerText;
         const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,40})/i);
         if (txMatch) {
@@ -230,6 +235,7 @@ function extractListing() {
     }
 
     // ── Strategy 5: Trim from URL slug ──
+    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
     if (!data.trim && data.model) {
         const slug = window.location.pathname.toLowerCase();
         const modelSlug = data.model.toLowerCase();
@@ -237,6 +243,7 @@ function extractListing() {
         if (modelIdx > -1) {
             const afterModel = slug.slice(modelIdx + modelSlug.length).replace(/^[-/]+/, '');
             const words = afterModel.split('-');
+            // Known noise words that appear after trim in dealer URLs
             const noiseWords = ['headup','head','display','blind','spot','assist','navigation',
                 'panor','carrollton','dallas','houston','tx','ca','fl','id','used','new',
                 'certified','pre','owned','detail','vehicle','listing','inventory'];
