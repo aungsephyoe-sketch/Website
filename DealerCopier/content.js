@@ -95,57 +95,89 @@ function extractListing() {
         }
     }
 
-    if (!data.color) data.color = text([
-        '[class*="exterior-color"]', '[class*="exteriorColor"]',
-        '[data-exterior-color]', '[class*="ext-color"]'
-    ]);
-    if (!data.color) data.color = text(['[class*="color"]', '[data-color]']);
+    // ── Color: scan vehicle highlights / key features first, then spec rows, then DOM ──
+    function scanHighlightsForColor(keyword) {
+        // Vehicle highlights sections on Carfax, AutoTrader, Cars.com, dealer sites
+        const highlightSections = document.querySelectorAll([
+            '[class*="highlight"]', '[class*="Highlight"]',
+            '[class*="key-feature"]', '[class*="keyFeature"]',
+            '[class*="vehicle-feature"]', '[class*="vehicleFeature"]',
+            '[class*="overview"]', '[class*="Overview"]',
+            '[class*="spec"]', '[class*="detail"]'
+        ].join(','));
+        for (const sec of highlightSections) {
+            const t = sec.textContent;
+            const re = new RegExp(keyword + '[:\\s/]+([A-Za-z][A-Za-z /]{1,30})', 'i');
+            const m = t.match(re);
+            if (m) return m[1].trim().split(/[\n,]/)[0].trim();
+        }
+        return '';
+    }
 
-    if (!data.interiorColor) data.interiorColor = text([
-        '[class*="interior-color"]', '[class*="interiorColor"]',
-        '[data-interior-color]', '[class*="int-color"]'
-    ]);
-    // Scan spec table rows: find a row whose label cell contains "interior" and grab the value cell
-    if (!data.interiorColor) {
-        const rows = document.querySelectorAll('tr, [class*="spec-row"], [class*="specRow"], [class*="detail-row"]');
+    function scanTableForLabel(labelPattern) {
+        const rows = document.querySelectorAll('tr, [class*="spec-row"], [class*="specRow"], [class*="detail-row"], [class*="feature-row"]');
         for (const row of rows) {
             const cells = row.querySelectorAll('td, th, [class*="label"], [class*="value"], span, div');
             const texts = Array.from(cells).map(c => c.textContent.trim());
             for (let i = 0; i < texts.length - 1; i++) {
-                if (/^int(erior)?\s*(color|colour)?$/i.test(texts[i])) {
-                    data.interiorColor = texts[i + 1]; break;
-                }
+                if (labelPattern.test(texts[i]) && texts[i + 1]) return texts[i + 1];
             }
-            if (data.interiorColor) break;
         }
-    }
-    // Fallback: body text regex
-    if (!data.interiorColor) {
-        const bodyText = document.body.innerText;
-        const intMatch = bodyText.match(/interior\s*(?:color|colour)[:\s]+([A-Za-z][A-Za-z ]{1,20})/i)
-                      || bodyText.match(/int\.?\s*color[:\s]+([A-Za-z][A-Za-z ]{1,20})/i)
-                      || bodyText.match(/interior[:\s]+([A-Za-z][A-Za-z ]{1,20})\s*(?:leather|cloth|vinyl|suede)/i);
-        if (intMatch) data.interiorColor = intMatch[1].trim().split(/\n/)[0].trim();
+        return '';
     }
 
+    // Exterior color
+    if (!data.color) data.color = text([
+        '[class*="exterior-color"]', '[class*="exteriorColor"]',
+        '[data-exterior-color]', '[class*="ext-color"]'
+    ]);
+    if (!data.color) data.color = scanHighlightsForColor('exterior\\s*(?:color|colour)');
+    if (!data.color) data.color = scanTableForLabel(/^ext(erior)?\s*(color|colour)?$/i);
+    if (!data.color) {
+        const bodyText = document.body.innerText;
+        const m = bodyText.match(/exterior\s*(?:color|colour)[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i)
+               || bodyText.match(/ext\.?\s*color[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i);
+        if (m) data.color = m[1].trim().split(/[\n,]/)[0].trim();
+    }
+    if (!data.color) data.color = text(['[class*="color"]', '[data-color]']);
+
+    // Interior color
+    if (!data.interiorColor) data.interiorColor = text([
+        '[class*="interior-color"]', '[class*="interiorColor"]',
+        '[data-interior-color]', '[class*="int-color"]'
+    ]);
+    if (!data.interiorColor) data.interiorColor = scanHighlightsForColor('interior\\s*(?:color|colour)');
+    if (!data.interiorColor) data.interiorColor = scanTableForLabel(/^int(erior)?\s*(color|colour)?$/i);
+    if (!data.interiorColor) {
+        const bodyText = document.body.innerText;
+        const m = bodyText.match(/interior\s*(?:color|colour)[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i)
+               || bodyText.match(/int\.?\s*color[:\s/]+([A-Za-z][A-Za-z ]{1,25})/i)
+               || bodyText.match(/interior[:\s]+([A-Za-z][A-Za-z ]{1,25})\s*(?:leather|cloth|vinyl|suede|seating)/i);
+        if (m) data.interiorColor = m[1].trim().split(/[\n,]/)[0].trim();
+    }
+
+    // Transmission — check explicit spec label first, then page text carefully
     if (!data.transmission) data.transmission = text([
         '[class*="transmission"]', '[data-transmission]', '[class*="Transmission"]'
     ]);
-    // Fallback: scan page text for transmission
+    if (!data.transmission) data.transmission = scanTableForLabel(/^transmission$/i);
     if (!data.transmission) {
         const bodyText = document.body.innerText;
-        const txMatch = bodyText.match(/transmission[:\s]+([A-Za-z0-9\- ]+)/i);
+        // Look for explicit "Transmission: X" label
+        const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,30})/i);
         if (txMatch) {
             const raw = txMatch[1].trim().toLowerCase();
-            if (/manual|mt\b|6-speed manual|5-speed manual/.test(raw)) data.transmission = 'Manual';
-            else if (/auto|cvt|dct|pdk|tiptronic|sequential/.test(raw)) data.transmission = 'Automatic';
+            if (/\bmanual\b|(?<!\w)mt\b|\d-speed\s+manual/.test(raw)) data.transmission = 'Manual';
+            else data.transmission = 'Automatic';
         }
     }
     if (!data.transmission) {
-        // Check for "manual" keyword anywhere prominent on page
-        const specText = Array.from(document.querySelectorAll('td, li, [class*="spec"], [class*="feature"]'))
-            .map(el => el.textContent.toLowerCase()).join(' ');
-        if (/\bmanual\b/.test(specText) && !/automatic/.test(specText)) data.transmission = 'Manual';
+        // Only call it Manual if a spec element says exactly "Manual" with no "Automatic" nearby
+        const specEls = Array.from(document.querySelectorAll('td, [class*="spec-value"], [class*="specValue"], [class*="detail-value"]'));
+        const specTexts = specEls.map(el => el.textContent.trim().toLowerCase());
+        const hasExplicitManual = specTexts.some(t => /^manual(\s+transmission)?$/.test(t));
+        const hasAutomatic = specTexts.some(t => /automatic|cvt|dct/.test(t));
+        if (hasExplicitManual && !hasAutomatic) data.transmission = 'Manual';
         else data.transmission = 'Automatic';
     }
 
@@ -186,7 +218,6 @@ function extractListing() {
     }
 
     // ── Strategy 5: Trim from URL slug ──
-    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
     if (!data.trim && data.model) {
         const slug = window.location.pathname.toLowerCase();
         const modelSlug = data.model.toLowerCase();
@@ -194,7 +225,6 @@ function extractListing() {
         if (modelIdx > -1) {
             const afterModel = slug.slice(modelIdx + modelSlug.length).replace(/^[-/]+/, '');
             const words = afterModel.split('-');
-            // Known noise words that appear after trim in dealer URLs
             const noiseWords = ['headup','head','display','blind','spot','assist','navigation',
                 'panor','carrollton','dallas','houston','tx','ca','fl','id','used','new',
                 'certified','pre','owned','detail','vehicle','listing','inventory'];
