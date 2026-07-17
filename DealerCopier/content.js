@@ -103,13 +103,11 @@ function extractListing() {
     // ── Label/value scanner: finds a visible label element then reads the sibling/child value ──
     // Works for Carfax Vehicle Highlights grid, AutoTrader spec tables, dealer pages, etc.
     function findLabelValue(labelPattern) {
-        // Walk every small element; when its text matches the label, grab the adjacent value
         const candidates = document.querySelectorAll(
             'p, span, div, td, th, dt, li, [class*="label"], [class*="title"], [class*="heading"]'
         );
         const INLINE = new Set(['STRONG','B','EM','I','SPAN','A','BR','ABBR','SMALL']);
         for (const el of candidates) {
-            // Match leaf-like elements AND elements whose only children are inline formatting tags
             const isLeafLike = el.childElementCount === 0 || el.tagName === 'DT'
                 || Array.from(el.children).every(c => INLINE.has(c.tagName));
             const own = isLeafLike ? el.textContent.trim() : '';
@@ -130,7 +128,7 @@ function extractListing() {
                 if (t && t.length < 60) return t;
             }
 
-            // 3. Grandparent scan (Carfax highlight grid: label div and value div share a wrapper)
+            // 3. Grandparent scan (Carfax highlight grid)
             const gp = el.parentElement?.parentElement;
             if (gp) {
                 const children = Array.from(gp.children);
@@ -177,15 +175,28 @@ function extractListing() {
     // Body style — read from page first, fall back to model-based guess in autofill
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
-    // Transmission — read explicit label first, then fall back carefully
-    // Priority: Schema.org → exact label scan → data attribute → body text (only if clearly a tx type) → default Automatic
-    if (!data.transmission) data.transmission = findLabelValue(/^transmission$/i);
+    // Transmission — normalize to 'Manual' or 'Automatic' at every step
     if (!data.transmission) {
-        const el = document.querySelector('[data-transmission], [itemprop="vehicleTransmission"]');
-        if (el) data.transmission = el.textContent.trim() || el.getAttribute('content') || '';
+        const raw = findLabelValue(/^transmission$/i);
+        if (raw) {
+            const r = raw.toLowerCase();
+            // "automatic" anywhere wins (handles "10-Speed Automatic with Manual Shift Mode")
+            if (/automatic|cvt|dct|pdk|tiptronic|dual.?clutch|continuously variable/.test(r)) {
+                data.transmission = 'Automatic';
+            } else if (/\bmanual\b/.test(r)) {
+                data.transmission = 'Manual';
+            }
+        }
     }
     if (!data.transmission) {
-        // Only trust body-text if the captured phrase IS a transmission type description
+        const el = document.querySelector('[data-transmission], [itemprop="vehicleTransmission"]');
+        if (el) {
+            const r = (el.textContent.trim() || el.getAttribute('content') || '').toLowerCase();
+            if (/automatic|cvt|dct|pdk|tiptronic/.test(r)) data.transmission = 'Automatic';
+            else if (/\bmanual\b/.test(r)) data.transmission = 'Manual';
+        }
+    }
+    if (!data.transmission) {
         const bodyText = document.body.innerText;
         const txMatch = bodyText.match(/\btransmission\b[:\s]+([A-Za-z0-9][A-Za-z0-9\-\s]{1,40})/i);
         if (txMatch) {
@@ -195,7 +206,6 @@ function extractListing() {
             } else if (/^manual\b/.test(raw) && !/manual\s+mode|manual\s+shift|manual\s+adjust/.test(raw)) {
                 data.transmission = 'Manual';
             }
-            // Otherwise: raw is not a transmission type (e.g. "fluid manually") — skip it
         }
     }
     if (!data.transmission) data.transmission = 'Automatic';
@@ -237,7 +247,6 @@ function extractListing() {
     }
 
     // ── Strategy 5: Trim from URL slug ──
-    // e.g. /used-2021-cadillac-escalade-premium-luxury-headup... → "Premium Luxury"
     if (!data.trim && data.model) {
         const slug = window.location.pathname.toLowerCase();
         const modelSlug = data.model.toLowerCase();
@@ -245,7 +254,6 @@ function extractListing() {
         if (modelIdx > -1) {
             const afterModel = slug.slice(modelIdx + modelSlug.length).replace(/^[-/]+/, '');
             const words = afterModel.split('-');
-            // Known noise words that appear after trim in dealer URLs
             const noiseWords = ['headup','head','display','blind','spot','assist','navigation',
                 'panor','carrollton','dallas','houston','tx','ca','fl','id','used','new',
                 'certified','pre','owned','detail','vehicle','listing','inventory'];

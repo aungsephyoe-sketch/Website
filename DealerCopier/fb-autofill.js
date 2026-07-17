@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 20
+// VERSION 21
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 20 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 21 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill (v20)';
+    btn.textContent = 'Fill (v21)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -77,19 +77,16 @@
         return raw;
     }
 
-    // Find an input/textarea by: aria-label, placeholder, nearby label text, or parent container text
     function findInputByLabel(labels) {
         for (const label of labels) {
             const lower = label.toLowerCase();
 
-            // 1. aria-label or placeholder
             for (const el of document.querySelectorAll('input, textarea')) {
                 const a = (el.getAttribute('aria-label') || '').toLowerCase();
                 const p = (el.getAttribute('placeholder') || '').toLowerCase();
                 if (a.includes(lower) || p.includes(lower)) return el;
             }
 
-            // 2. <label> element whose text matches, then find associated input
             for (const lbl of document.querySelectorAll('label')) {
                 if (lbl.textContent.trim().toLowerCase().includes(lower)) {
                     const forId = lbl.getAttribute('for');
@@ -102,10 +99,8 @@
                 }
             }
 
-            // 3. Look for any element with that text, then find input in the same container
             for (const el of document.querySelectorAll('span, div, p, legend')) {
                 if (el.textContent.trim().toLowerCase() === lower) {
-                    // Walk up to find a container that has an input/textarea
                     let node = el.parentElement;
                     for (let i = 0; i < 5; i++) {
                         if (!node) break;
@@ -123,7 +118,6 @@
         if (value === null || value === undefined || value === '') return false;
 
         const el = await waitFor(() => findInputByLabel(labels), 5000);
-
         if (!el) { console.warn('[DM] Text input not found:', labels); return false; }
 
         console.log('[DM] fillText:', labels[0], '=', String(value).slice(0, 60));
@@ -133,10 +127,8 @@
         el.focus();
         await sleep(300);
 
-        // Clear first
         setReact(el, '');
         await sleep(100);
-
         setReact(el, value);
 
         if (String(el.value) !== String(value)) {
@@ -269,21 +261,13 @@
 
     function guessBodyStyle(model, trim) {
         const m = ((model || '') + ' ' + (trim || '')).toLowerCase();
-        // Minivan first (before van matches truck)
         if (/odyssey|sienna|pacifica|caravan|sedona|minivan|mini-van/.test(m)) return 'Minivan';
-        // Truck
-        if (/silverado|f-150|f150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
-        // SUV
-        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|trailblazer|encore|envoy|trailblazer|captiva|passport|vezel|hr-v|hrv|crv|cr-v|cx-30|cx-3|bravada|jimmy|envision|buick encore|chevy trax|kona|venue|nexo|ioniq|palisade|telluride|sorento|sportage|seltos|soul|niro|stonic|xceed|niro|juke|kicks|xterra|xterra|armada|pathfinder|terra|x-trail|qashqai|juke|leaf\b|bolt\b|equinox|blazer|trailblazer|tracker|captiva|trax|\bsuv\b|crossover|4wd|awd/.test(m)) return 'SUV';
-        // Coupe
+        if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
+        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|encore|envoy|captiva|passport|vezel|hr-v|hrv|cx-30|cx-3|bravada|jimmy|envision|kona|venue|nexo|ioniq|palisade|telluride|sorento|sportage|seltos|soul|niro|juke|kicks|xterra|x-trail|leaf\b|bolt\b|tracker|\bsuv\b|crossover|4wd|awd/.test(m)) return 'SUV';
         if (/mustang|camaro|challenger|corvette|charger|86|brz|miata|370z|400z|\bcoupe\b|2-door|2dr/.test(m)) return 'Coupe';
-        // Convertible
         if (/convert|cabriolet|roadster/.test(m)) return 'Convertible';
-        // Hatchback
         if (/hatchback|hatch|golf|fit\b|yaris|versa note|accent hatch/.test(m)) return 'Hatchback';
-        // Wagon
         if (/wagon|estate|sport wagon/.test(m)) return 'Wagon';
-        // Sedan (common models)
         if (/camry|accord|civic|corolla|altima|sentra|malibu|sonata|elantra|jetta|passat|fusion|impala|charger|300\b|maxima|avalon|legacy|impreza|optima|k5|stinger|a4|a6|3 series|5 series|c-class|e-class|isf?\b|gs\b|es\b|\bsedan\b|4-door|4dr/.test(m)) return 'Sedan';
         return 'Sedan';
     }
@@ -297,24 +281,24 @@
 
         const extColor = normalizeColor(d.color);
         const intColor = normalizeColor(d.interiorColor) || 'Black';
-        const transmission = d.transmission || 'Automatic';
+        // Final safety normalization — always resolve to exactly 'Manual' or 'Automatic'
+        const rawTx = (d.transmission || '').toLowerCase();
+        const transmission = (/\bmanual\b/.test(rawTx) && !/automatic|cvt|dct|pdk|tiptronic/.test(rawTx))
+            ? 'Manual' : 'Automatic';
         console.log('[DM] Data:', JSON.stringify({ year: d.year, make: d.make, model: d.model, trim: d.trim, price: d.price, mileage: d.mileage, extColor, intColor, transmission }));
 
         status('Vehicle type...');
         await fillDropdown(['Vehicle type', 'vehicle type', 'Type'], 'Cars & Trucks', ['Car', 'Cars/Trucks']);
-        // Wait for Year dropdown to appear
         await waitFor(() => findTrigger(['Year', 'Model year', 'year']), 5000);
         await sleep(300);
 
         status('Year...');
         await fillDropdown(['Year', 'Model year', 'year'], d.year);
-        // Wait for Make dropdown to appear after Year selection
         await waitFor(() => findTrigger(['Make', 'Brand', 'make', 'Vehicle make']), 5000);
         await sleep(300);
 
         status('Make...');
         await fillDropdown(['Make', 'Brand', 'make', 'Vehicle make'], d.make);
-        // Wait for Model field to appear after Make selection
         await waitFor(() => findInputByLabel(['Model', 'model', 'Vehicle model']), 5000);
         await sleep(300);
 
@@ -364,7 +348,7 @@
         btn.textContent = 'Done! Review and submit';
         btn.style.background = '#42b72a';
         setTimeout(() => {
-            btn.textContent = 'Fill (v20)';
+            btn.textContent = 'Fill (v21)';
             btn.style.background = '#1877f2';
             btn.disabled = false;
         }, 8000);
