@@ -281,18 +281,15 @@
     async function uploadPhotos(images) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
-        status('Photos (' + urls.length + ')...');
-
-        const photoInput = await waitFor(() =>
-            document.querySelector('input[type="file"][accept*="image"], input[type="file"]'), 3000);
-        if (!photoInput) { console.warn('[DM] Photo input not found'); return; }
+        status('Fetching photos...');
 
         const files = [];
         for (let i = 0; i < urls.length; i++) {
+            status('Fetching photo ' + (i + 1) + '/' + urls.length + '...');
             try {
                 const resp = await fetch(urls[i]);
                 const blob = await resp.blob();
-                const ext = (blob.type || 'image/jpeg').split('/')[1] || 'jpg';
+                const ext = (blob.type || 'image/jpeg').split('/')[1].split('+')[0] || 'jpg';
                 files.push(new File([blob], 'photo-' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' }));
                 console.log('[DM] Fetched photo ' + (i + 1) + '/' + urls.length);
             } catch(e) {
@@ -300,18 +297,45 @@
             }
         }
 
-        if (!files.length) return;
+        if (!files.length) { console.warn('[DM] No photos fetched'); return; }
 
-        try {
-            const dt = new DataTransfer();
-            files.forEach(f => dt.items.add(f));
-            photoInput.files = dt.files;
-            photoInput.dispatchEvent(new Event('change', { bubbles: true }));
-            photoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-            await sleep(2500);
-            console.log('[DM] Photos set:', files.length);
-        } catch(e) {
-            console.warn('[DM] Photo upload failed:', e.message);
+        status('Uploading ' + files.length + ' photos...');
+
+        // Build a DataTransfer with all files
+        const dt = new DataTransfer();
+        files.forEach(f => dt.items.add(f));
+
+        // Strategy 1: set files on the hidden file input
+        const photoInput = document.querySelector('input[type="file"][accept*="image"]')
+                        || document.querySelector('input[type="file"]');
+        if (photoInput) {
+            try {
+                photoInput.files = dt.files;
+                photoInput.dispatchEvent(new Event('change', { bubbles: true }));
+                photoInput.dispatchEvent(new Event('input',  { bubbles: true }));
+                await sleep(3000);
+                console.log('[DM] Photos set via input:', files.length);
+            } catch(e) {
+                console.warn('[DM] File input strategy failed:', e.message);
+            }
+        }
+
+        // Strategy 2: drop event on the photo upload zone
+        const dropZone = document.querySelector('[aria-label*="photo" i][role="button"]')
+                      || document.querySelector('[aria-label*="Add photo" i]')
+                      || document.querySelector('[data-testid*="photo"]')
+                      || photoInput?.closest('div[role="button"]')
+                      || photoInput?.parentElement;
+        if (dropZone) {
+            try {
+                ['dragenter','dragover','drop'].forEach(type => {
+                    dropZone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+                });
+                await sleep(3000);
+                console.log('[DM] Photos dropped on zone');
+            } catch(e) {
+                console.warn('[DM] Drop strategy failed:', e.message);
+            }
         }
     }
 
@@ -319,31 +343,41 @@
         if (!videos || !videos.length) return;
         const url = videos[0];
 
-        // Skip YouTube/Vimeo — can't fetch cross-origin
         if (/youtube|youtu\.be|vimeo/.test(url)) {
-            console.warn('[DM] Video is YouTube/Vimeo, skipping upload:', url);
+            console.warn('[DM] Video is YouTube/Vimeo, cannot upload cross-origin:', url);
             return;
         }
 
-        status('Video...');
-
-        const videoInput = await waitFor(() =>
-            document.querySelector('input[type="file"][accept*="video"]'), 3000);
-        if (!videoInput) { console.warn('[DM] Video input not found'); return; }
-
+        status('Fetching video...');
         try {
             const resp = await fetch(url);
             const blob = await resp.blob();
-            const ext = (blob.type || 'video/mp4').split('/')[1] || 'mp4';
+            const ext = (blob.type || 'video/mp4').split('/')[1].split('+')[0] || 'mp4';
             const file = new File([blob], 'car-video.' + ext, { type: blob.type || 'video/mp4' });
-
             const dt = new DataTransfer();
             dt.items.add(file);
-            videoInput.files = dt.files;
-            videoInput.dispatchEvent(new Event('change', { bubbles: true }));
-            videoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-            await sleep(3000);
-            console.log('[DM] Video set');
+
+            status('Uploading video...');
+            const videoInput = document.querySelector('input[type="file"][accept*="video"]');
+            if (videoInput) {
+                videoInput.files = dt.files;
+                videoInput.dispatchEvent(new Event('change', { bubbles: true }));
+                videoInput.dispatchEvent(new Event('input',  { bubbles: true }));
+                await sleep(3000);
+                console.log('[DM] Video set via input');
+            }
+
+            const dropZone = document.querySelector('[aria-label*="video" i][role="button"]')
+                          || document.querySelector('[aria-label*="Add video" i]')
+                          || videoInput?.closest('div[role="button"]')
+                          || videoInput?.parentElement;
+            if (dropZone) {
+                ['dragenter','dragover','drop'].forEach(type => {
+                    dropZone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+                });
+                await sleep(3000);
+                console.log('[DM] Video dropped on zone');
+            }
         } catch(e) {
             console.warn('[DM] Video upload failed:', e.message);
         }
