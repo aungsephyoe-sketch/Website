@@ -299,28 +299,53 @@
         return new File([arr.buffer], filename, { type: mimeType });
     }
 
-    function applyFilesToInput(input, dt) {
-        if (!input) return false;
+    // Directly call React's onChange on an element (bypasses event delegation)
+    function callReactOnChange(el, fileList) {
+        // Set files on the element first
         try {
-            // Override the files property so React can read it
-            Object.defineProperty(input, 'files', {
-                configurable: true,
-                get: () => dt.files
-            });
+            Object.defineProperty(el, 'files', { configurable: true, get: () => fileList });
         } catch(e) {
-            try { input.files = dt.files; } catch(_) {}
+            try { el.files = fileList; } catch(_) {}
         }
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        input.dispatchEvent(new Event('input',  { bubbles: true }));
-        return true;
+
+        const fakeEvent = {
+            target: el, currentTarget: el, type: 'change',
+            bubbles: true, cancelable: false,
+            preventDefault() {}, stopPropagation() {}, persist() {}
+        };
+
+        // React 17+: props stored on __reactProps$<hash>
+        const propsKey = Object.keys(el).find(k => k.startsWith('__reactProps$'));
+        if (propsKey) {
+            const props = el[propsKey];
+            if (props && typeof props.onChange === 'function') {
+                try { props.onChange(fakeEvent); return true; } catch(e) { console.warn('[DM] reactProps onChange:', e.message); }
+            }
+        }
+
+        // React 16: walk fiber tree for onChange
+        const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+        if (fiberKey) {
+            let node = el[fiberKey];
+            while (node) {
+                const props = node.memoizedProps;
+                if (props && typeof props.onChange === 'function') {
+                    try { props.onChange(fakeEvent); return true; } catch(e) { console.warn('[DM] fiber onChange:', e.message); }
+                }
+                node = node.return;
+            }
+        }
+
+        // Fallback: dispatch native change event (may not reach React)
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        return false;
     }
 
     function dropFilesOnZone(zone, dt) {
         if (!zone) return false;
         ['dragenter', 'dragover', 'drop'].forEach(type => {
-            zone.dispatchEvent(new DragEvent(type, {
-                bubbles: true, cancelable: true, dataTransfer: dt
-            }));
+            zone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
         });
         return true;
     }
@@ -329,7 +354,6 @@
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
         status('Fetching photos...');
-        console.log('[DM] Fetching', urls.length, 'photos via background');
 
         const results = await fetchViaBackground(urls);
         const files = results
@@ -340,33 +364,36 @@
             });
 
         if (!files.length) { console.warn('[DM] No photos fetched'); return; }
+        console.log('[DM] Fetched', files.length, 'photos, attempting upload');
 
         status('Uploading ' + files.length + ' photos...');
         const dt = new DataTransfer();
         files.forEach(f => dt.items.add(f));
 
-        // Try all file inputs
-        const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
-        const photoInputs = inputs.filter(i => !i.accept || /image/i.test(i.accept));
-        const anyInput = photoInputs.length ? photoInputs : inputs;
-
-        for (const inp of anyInput) {
-            applyFilesToInput(inp, dt);
+        // Find all file inputs and call React's onChange on each
+        const allInputs = Array.from(document.querySelectorAll('input[type="file"]'));
+        console.log('[DM] File inputs found:', allInputs.length);
+        for (const inp of allInputs) {
+            callReactOnChange(inp, dt.files);
+            await sleep(400);
         }
-        await sleep(2000);
+        await sleep(1500);
 
-        // Also try drop zones
-        const dropCandidates = [
-            document.querySelector('[aria-label*="photo" i][role="button"]'),
+        // Also try drag-drop on likely upload zones
+        const zones = Array.from(new Set([
+            document.querySelector('[aria-label*="photo" i]'),
             document.querySelector('[aria-label*="Add photo" i]'),
+            document.querySelector('[aria-label*="image" i][role="button"]'),
             document.querySelector('[data-testid*="photo"]'),
-            document.querySelector('[role="button"][tabindex]'),
-        ];
-        for (const zone of dropCandidates) {
-            if (zone) { dropFilesOnZone(zone, dt); await sleep(500); }
+            ...document.querySelectorAll('[role="button"]'),
+        ].filter(Boolean))).slice(0, 6);
+
+        for (const zone of zones) {
+            dropFilesOnZone(zone, dt);
+            await sleep(300);
         }
         await sleep(2000);
-        console.log('[DM] Photo upload attempted with', files.length, 'files');
+        console.log('[DM] Photo upload done');
     }
 
     async function uploadVideo(videos) {
@@ -379,8 +406,6 @@
         }
 
         status('Fetching video...');
-        console.log('[DM] Fetching video via background:', url);
-
         const results = await fetchViaBackground([url]);
         const r = results[0];
         if (!r || r.error || !r.base64) {
@@ -394,23 +419,23 @@
         dt.items.add(file);
 
         status('Uploading video...');
-        const videoInputs = Array.from(document.querySelectorAll('input[type="file"]'))
-            .filter(i => !i.accept || /video/i.test(i.accept));
-
-        for (const inp of videoInputs) {
-            applyFilesToInput(inp, dt);
+        const allInputs = Array.from(document.querySelectorAll('input[type="file"]'));
+        for (const inp of allInputs) {
+            callReactOnChange(inp, dt.files);
+            await sleep(400);
         }
-        await sleep(2000);
+        await sleep(1500);
 
-        const videoDropCandidates = [
-            document.querySelector('[aria-label*="video" i][role="button"]'),
+        const videoZones = [
+            document.querySelector('[aria-label*="video" i]'),
             document.querySelector('[aria-label*="Add video" i]'),
-        ];
-        for (const zone of videoDropCandidates) {
-            if (zone) { dropFilesOnZone(zone, dt); await sleep(500); }
+        ].filter(Boolean);
+        for (const zone of videoZones) {
+            dropFilesOnZone(zone, dt);
+            await sleep(300);
         }
         await sleep(2000);
-        console.log('[DM] Video upload attempted');
+        console.log('[DM] Video upload done');
     }
 
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
