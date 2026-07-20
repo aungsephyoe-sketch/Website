@@ -278,65 +278,95 @@
         return false;
     }
 
+    // Fetch files via background service worker (bypasses CORS)
+    function fetchViaBackground(urls) {
+        return new Promise(resolve => {
+            chrome.runtime.sendMessage({ type: 'FETCH_FILES', urls }, resp => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[DM] BG fetch error:', chrome.runtime.lastError.message);
+                    resolve([]);
+                } else {
+                    resolve(resp ? resp.results : []);
+                }
+            });
+        });
+    }
+
+    function base64ToFile(base64, mimeType, filename) {
+        const binary = atob(base64);
+        const arr = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+        return new File([arr.buffer], filename, { type: mimeType });
+    }
+
+    function applyFilesToInput(input, dt) {
+        if (!input) return false;
+        try {
+            // Override the files property so React can read it
+            Object.defineProperty(input, 'files', {
+                configurable: true,
+                get: () => dt.files
+            });
+        } catch(e) {
+            try { input.files = dt.files; } catch(_) {}
+        }
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event('input',  { bubbles: true }));
+        return true;
+    }
+
+    function dropFilesOnZone(zone, dt) {
+        if (!zone) return false;
+        ['dragenter', 'dragover', 'drop'].forEach(type => {
+            zone.dispatchEvent(new DragEvent(type, {
+                bubbles: true, cancelable: true, dataTransfer: dt
+            }));
+        });
+        return true;
+    }
+
     async function uploadPhotos(images) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
         status('Fetching photos...');
+        console.log('[DM] Fetching', urls.length, 'photos via background');
 
-        const files = [];
-        for (let i = 0; i < urls.length; i++) {
-            status('Fetching photo ' + (i + 1) + '/' + urls.length + '...');
-            try {
-                const resp = await fetch(urls[i]);
-                const blob = await resp.blob();
-                const ext = (blob.type || 'image/jpeg').split('/')[1].split('+')[0] || 'jpg';
-                files.push(new File([blob], 'photo-' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' }));
-                console.log('[DM] Fetched photo ' + (i + 1) + '/' + urls.length);
-            } catch(e) {
-                console.warn('[DM] Could not fetch photo:', urls[i], e.message);
-            }
-        }
+        const results = await fetchViaBackground(urls);
+        const files = results
+            .filter(r => r.base64 && !r.error)
+            .map((r, i) => {
+                const ext = (r.mimeType || 'image/jpeg').split('/')[1].split('+')[0] || 'jpg';
+                return base64ToFile(r.base64, r.mimeType || 'image/jpeg', 'photo-' + (i + 1) + '.' + ext);
+            });
 
         if (!files.length) { console.warn('[DM] No photos fetched'); return; }
 
         status('Uploading ' + files.length + ' photos...');
-
-        // Build a DataTransfer with all files
         const dt = new DataTransfer();
         files.forEach(f => dt.items.add(f));
 
-        // Strategy 1: set files on the hidden file input
-        const photoInput = document.querySelector('input[type="file"][accept*="image"]')
-                        || document.querySelector('input[type="file"]');
-        if (photoInput) {
-            try {
-                photoInput.files = dt.files;
-                photoInput.dispatchEvent(new Event('change', { bubbles: true }));
-                photoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-                await sleep(3000);
-                console.log('[DM] Photos set via input:', files.length);
-            } catch(e) {
-                console.warn('[DM] File input strategy failed:', e.message);
-            }
-        }
+        // Try all file inputs
+        const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
+        const photoInputs = inputs.filter(i => !i.accept || /image/i.test(i.accept));
+        const anyInput = photoInputs.length ? photoInputs : inputs;
 
-        // Strategy 2: drop event on the photo upload zone
-        const dropZone = document.querySelector('[aria-label*="photo" i][role="button"]')
-                      || document.querySelector('[aria-label*="Add photo" i]')
-                      || document.querySelector('[data-testid*="photo"]')
-                      || photoInput?.closest('div[role="button"]')
-                      || photoInput?.parentElement;
-        if (dropZone) {
-            try {
-                ['dragenter','dragover','drop'].forEach(type => {
-                    dropZone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
-                });
-                await sleep(3000);
-                console.log('[DM] Photos dropped on zone');
-            } catch(e) {
-                console.warn('[DM] Drop strategy failed:', e.message);
-            }
+        for (const inp of anyInput) {
+            applyFilesToInput(inp, dt);
         }
+        await sleep(2000);
+
+        // Also try drop zones
+        const dropCandidates = [
+            document.querySelector('[aria-label*="photo" i][role="button"]'),
+            document.querySelector('[aria-label*="Add photo" i]'),
+            document.querySelector('[data-testid*="photo"]'),
+            document.querySelector('[role="button"][tabindex]'),
+        ];
+        for (const zone of dropCandidates) {
+            if (zone) { dropFilesOnZone(zone, dt); await sleep(500); }
+        }
+        await sleep(2000);
+        console.log('[DM] Photo upload attempted with', files.length, 'files');
     }
 
     async function uploadVideo(videos) {
@@ -344,43 +374,43 @@
         const url = videos[0];
 
         if (/youtube|youtu\.be|vimeo/.test(url)) {
-            console.warn('[DM] Video is YouTube/Vimeo, cannot upload cross-origin:', url);
+            console.warn('[DM] Video is YouTube/Vimeo — cannot upload:', url);
             return;
         }
 
         status('Fetching video...');
-        try {
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const ext = (blob.type || 'video/mp4').split('/')[1].split('+')[0] || 'mp4';
-            const file = new File([blob], 'car-video.' + ext, { type: blob.type || 'video/mp4' });
-            const dt = new DataTransfer();
-            dt.items.add(file);
+        console.log('[DM] Fetching video via background:', url);
 
-            status('Uploading video...');
-            const videoInput = document.querySelector('input[type="file"][accept*="video"]');
-            if (videoInput) {
-                videoInput.files = dt.files;
-                videoInput.dispatchEvent(new Event('change', { bubbles: true }));
-                videoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-                await sleep(3000);
-                console.log('[DM] Video set via input');
-            }
-
-            const dropZone = document.querySelector('[aria-label*="video" i][role="button"]')
-                          || document.querySelector('[aria-label*="Add video" i]')
-                          || videoInput?.closest('div[role="button"]')
-                          || videoInput?.parentElement;
-            if (dropZone) {
-                ['dragenter','dragover','drop'].forEach(type => {
-                    dropZone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
-                });
-                await sleep(3000);
-                console.log('[DM] Video dropped on zone');
-            }
-        } catch(e) {
-            console.warn('[DM] Video upload failed:', e.message);
+        const results = await fetchViaBackground([url]);
+        const r = results[0];
+        if (!r || r.error || !r.base64) {
+            console.warn('[DM] Video fetch failed:', r && r.error);
+            return;
         }
+
+        const ext = (r.mimeType || 'video/mp4').split('/')[1].split('+')[0] || 'mp4';
+        const file = base64ToFile(r.base64, r.mimeType || 'video/mp4', 'car-video.' + ext);
+        const dt = new DataTransfer();
+        dt.items.add(file);
+
+        status('Uploading video...');
+        const videoInputs = Array.from(document.querySelectorAll('input[type="file"]'))
+            .filter(i => !i.accept || /video/i.test(i.accept));
+
+        for (const inp of videoInputs) {
+            applyFilesToInput(inp, dt);
+        }
+        await sleep(2000);
+
+        const videoDropCandidates = [
+            document.querySelector('[aria-label*="video" i][role="button"]'),
+            document.querySelector('[aria-label*="Add video" i]'),
+        ];
+        for (const zone of videoDropCandidates) {
+            if (zone) { dropFilesOnZone(zone, dt); await sleep(500); }
+        }
+        await sleep(2000);
+        console.log('[DM] Video upload attempted');
     }
 
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
