@@ -315,6 +315,40 @@
         }
     }
 
+    async function uploadVideo(videos) {
+        if (!videos || !videos.length) return;
+        const url = videos[0];
+
+        // Skip YouTube/Vimeo — can't fetch cross-origin
+        if (/youtube|youtu\.be|vimeo/.test(url)) {
+            console.warn('[DM] Video is YouTube/Vimeo, skipping upload:', url);
+            return;
+        }
+
+        status('Video...');
+
+        const videoInput = await waitFor(() =>
+            document.querySelector('input[type="file"][accept*="video"]'), 3000);
+        if (!videoInput) { console.warn('[DM] Video input not found'); return; }
+
+        try {
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const ext = (blob.type || 'video/mp4').split('/')[1] || 'mp4';
+            const file = new File([blob], 'car-video.' + ext, { type: blob.type || 'video/mp4' });
+
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            videoInput.files = dt.files;
+            videoInput.dispatchEvent(new Event('change', { bubbles: true }));
+            videoInput.dispatchEvent(new Event('input',  { bubbles: true }));
+            await sleep(3000);
+            console.log('[DM] Video set');
+        } catch(e) {
+            console.warn('[DM] Video upload failed:', e.message);
+        }
+    }
+
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
 
     async function autofill(d) {
@@ -334,10 +368,8 @@
             photos: (d.images || []).length
         }));
 
-        // Upload photos first (upload area is near top of form)
-        if (d.images && d.images.length) {
-            await uploadPhotos(d.images);
-        }
+        if (d.images && d.images.length) await uploadPhotos(d.images);
+        if (d.videos && d.videos.length) await uploadVideo(d.videos);
 
         status('Vehicle type...');
         await fillDropdown(
