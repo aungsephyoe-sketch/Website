@@ -1,13 +1,1 @@
-{
-  "manifest_version": 3,
-  "name": "Dealer to Marketplace",
-  "version": "3.1",
-  "description": "Extract car listings and auto-fill Facebook Marketplace.",
-  "permissions": ["activeTab", "scripting", "clipboardWrite", "storage", "tabs", "downloads"],
-  "host_permissions": ["<all_urls>"],
-  "action": { "default_popup": "popup.html" },
-  "content_scripts": [
-    { "matches": ["<all_urls>"], "js": ["content.js"], "run_at": "document_idle" },
-    { "matches": ["https://www.facebook.com/marketplace/create/vehicle*"], "js": ["fb-autofill.js"], "run_at": "document_idle" }
-  ]
-}
+ewogICJtYW5pZmVzdF92ZXJzaW9uIjogMywKICAibmFtZSI6ICJEZWFsZXIgdG8gTWFya2V0cGxhY2UiLAogICJ2ZXJzaW9uIjogIjMuMSIsCiAgImRlc2NyaXB0aW9uIjogIkV4dHJhY3QgY2FyIGxpc3RpbmdzIGFuZCBhdXRvLWZpbGwgRmFjZWJvb2sgTWFya2V0cGxhY2UuIiwKICAicGVybWlzc2lvbnMiOiBbImFjdGl2ZVRhYiIsICJzY3JpcHRpbmciLCAiY2xpcGJvYXJkV3JpdGUiLCAic3RvcmFnZSIsICJ0YWJzIiwgImRvd25sb2FkcyJdLAogICJob3N0X3Blcm1pc3Npb25zIjogWyI8YWxsX3VybHM+Il0sCiAgImFjdGlvbiI6IHsgImRlZmF1bHRfcG9wdXAiOiAicG9wdXAuaHRtbCIgfSwKICAiY29udGVudF9zY3JpcHRzIjogWwogICAgeyAibWF0Y2hlcyI6IFsiPGFsbF91cmxzPiJdLCAianMiOiBbImNvbnRlbnQuanMiXSwgInJ1bl9hdCI6ICJkb2N1bWVudF9pZGxlIiB9LAogICAgeyAibWF0Y2hlcyI6IFsiaHR0cHM6Ly93d3cuZmFjZWJvb2suY29tL21hcmtldHBsYWNlL2NyZWF0ZS92ZWhpY2xlKiJdLCAianMiOiBbImZiLWF1dG9maWxsLmpzIl0sICJydW5fYXQiOiAiZG9jdW1lbnRfaWRsZSIgfQogIF0KfQo=
