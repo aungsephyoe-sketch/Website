@@ -1,5 +1,5 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 19
+// VERSION 18
 
 (function () {
     if (document.getElementById('dm-fab')) return;
@@ -8,7 +8,7 @@
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill Listing (v19)';
+    btn.textContent = 'Fill Listing (v18)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -70,8 +70,8 @@
         if (/green|olive|forest/.test(r))                 return 'Green';
         if (/orange/.test(r))                             return 'Orange';
         if (/yellow/.test(r))                             return 'Yellow';
-        if (/brown|copper|bronze/.test(r))                return 'Brown';
-        if (/beige|cream|sand|champagne|tan/.test(r))     return 'Beige';
+        if (/brown|tan|copper|bronze/.test(r))            return 'Brown';
+        if (/beige|cream|sand|champagne/.test(r))         return 'Beige';
         if (/purple|violet|lavender/.test(r))             return 'Purple';
         if (/gold/.test(r))                               return 'Gold';
         return raw;
@@ -82,8 +82,8 @@
         if (/odyssey|sienna|pacifica|caravan|sedona|minivan|mini-van/.test(m)) return 'Minivan';
         if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
         if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|encore|envoy|captiva|passport|hr-v|hrv|cx-30|cx-3|bravada|envision|kona|venue|palisade|telluride|sorento|sportage|seltos|soul|niro|juke|kicks|xterra|x-trail|bolt\b|tracker|\bsuv\b|crossover|4wd|awd/.test(m)) return 'SUV';
-        if (/convert|cabriolet|roadster|cabrio|spyder|spider|targa/.test(m)) return 'Convertible';
         if (/mustang|camaro|challenger|corvette|charger|86|brz|miata|370z|400z|911|\bcoupe\b|2-door|2dr/.test(m)) return 'Coupe';
+        if (/convert|cabriolet|roadster/.test(m)) return 'Convertible';
         if (/hatchback|hatch|golf|fit\b|yaris|versa note|accent hatch/.test(m)) return 'Hatchback';
         if (/wagon|estate|sport wagon/.test(m)) return 'Wagon';
         return 'Sedan';
@@ -278,49 +278,25 @@
         return false;
     }
 
-    async function uploadMedia(images, videos) {
-        const photoUrls = (images || []).slice(0, 10);
-        const videoUrls = (videos || []).slice(0, 1);
-        const totalMedia = photoUrls.length + videoUrls.length;
-        if (!totalMedia) return;
-
-        status('Media (' + totalMedia + ')...');
+    async function uploadPhotos(images) {
+        if (!images || !images.length) return;
+        const urls = images.slice(0, 10);
+        status('Photos (' + urls.length + ')...');
 
         const photoInput = await waitFor(() =>
             document.querySelector('input[type="file"][accept*="image"], input[type="file"]'), 3000);
         if (!photoInput) { console.warn('[DM] Photo input not found'); return; }
 
         const files = [];
-
-        // Fetch photos
-        for (let i = 0; i < photoUrls.length; i++) {
+        for (let i = 0; i < urls.length; i++) {
             try {
-                status('Fetching photo ' + (i + 1) + '/' + photoUrls.length + '...');
-                const resp = await fetch(photoUrls[i]);
+                const resp = await fetch(urls[i]);
                 const blob = await resp.blob();
                 const ext = (blob.type || 'image/jpeg').split('/')[1] || 'jpg';
                 files.push(new File([blob], 'photo-' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' }));
-                console.log('[DM] Photo ' + (i + 1) + ' ready');
+                console.log('[DM] Fetched photo ' + (i + 1) + '/' + urls.length);
             } catch(e) {
-                console.warn('[DM] Photo fetch failed:', photoUrls[i], e.message);
-            }
-        }
-
-        // Fetch video (only direct video files, not YouTube/Vimeo links)
-        for (const url of videoUrls) {
-            if (url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo')) {
-                console.log('[DM] Skipping streaming video (YouTube/Vimeo):', url);
-                continue;
-            }
-            try {
-                status('Fetching video...');
-                const resp = await fetch(url);
-                const blob = await resp.blob();
-                const ext = (blob.type || 'video/mp4').split('/')[1] || 'mp4';
-                files.push(new File([blob], 'video.' + ext, { type: blob.type || 'video/mp4' }));
-                console.log('[DM] Video ready');
-            } catch(e) {
-                console.warn('[DM] Video fetch failed:', url, e.message);
+                console.warn('[DM] Could not fetch photo:', urls[i], e.message);
             }
         }
 
@@ -332,10 +308,10 @@
             photoInput.files = dt.files;
             photoInput.dispatchEvent(new Event('change', { bubbles: true }));
             photoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-            await sleep(3000);
-            console.log('[DM] Media uploaded:', files.length, 'file(s)');
+            await sleep(2500);
+            console.log('[DM] Photos set:', files.length);
         } catch(e) {
-            console.warn('[DM] Media upload failed:', e.message);
+            console.warn('[DM] Photo upload failed:', e.message);
         }
     }
 
@@ -358,9 +334,9 @@
             photos: (d.images || []).length
         }));
 
-        // Upload photos + video first (upload area is near top of form)
-        if ((d.images && d.images.length) || (d.videos && d.videos.length)) {
-            await uploadMedia(d.images, d.videos);
+        // Upload photos first (upload area is near top of form)
+        if (d.images && d.images.length) {
+            await uploadPhotos(d.images);
         }
 
         status('Vehicle type...');
@@ -462,7 +438,7 @@
         btn.style.background = '#42b72a';
         btn.disabled = false;
         setTimeout(() => {
-            btn.textContent = 'Fill Listing (v19)';
+            btn.textContent = 'Fill Listing (v18)';
             btn.style.background = '#1877f2';
         }, 10000);
     }
