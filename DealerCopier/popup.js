@@ -1,1 +1,155 @@
-Y29uc3QgYm9keSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdib2R5Jyk7CmNvbnN0IHRvYXN0ID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3RvYXN0Jyk7CgpmdW5jdGlvbiBzaG93VG9hc3QobXNnKSB7CiAgICB0b2FzdC50ZXh0Q29udGVudCA9IG1zZzsKICAgIHRvYXN0LmNsYXNzTGlzdC5hZGQoJ3Nob3cnKTsKICAgIHNldFRpbWVvdXQoKCkgPT4gdG9hc3QuY2xhc3NMaXN0LnJlbW92ZSgnc2hvdycpLCAyMjAwKTsKfQoKZnVuY3Rpb24gYnVpbGREZXNjcmlwdGlvbihkKSB7CiAgICBjb25zdCB0aXRsZSA9IFtkLnllYXIsIGQubWFrZSwgZC5tb2RlbCwgZC50cmltXS5maWx0ZXIoQm9vbGVhbikuam9pbignICcpOwogICAgY29uc3QgbGluZXMgPSBbXTsKCiAgICBpZiAodGl0bGUpIGxpbmVzLnB1c2goJ/CfmpcgJyArIHRpdGxlICsgJyDigJQgRG9uXCd0IE1pc3MgVGhpcyBPbmUhJyk7CiAgICBsaW5lcy5wdXNoKCcnKTsKCiAgICBjb25zdCBob29rcyA9IFtdOwogICAgaWYgKGQubWlsZWFnZSkgaG9va3MucHVzaCgnb25seSAnICsgTnVtYmVyKChkLm1pbGVhZ2V8fCcnKS5yZXBsYWNlKC9cRC9nLCcnKXx8MCkudG9Mb2NhbGVTdHJpbmcoKSArICcgbWlsZXMnKTsKICAgIGlmIChkLmNvbG9yKSAgIGhvb2tzLnB1c2goJ3N0cmlraW5nICcgKyBkLmNvbG9yICsgJyBleHRlcmlvcicpOwogICAgaWYgKGhvb2tzLmxlbmd0aCkgewogICAgICAgIGxpbmVzLnB1c2goJ1RoaXMgYmVhdXR5IGlzIHR1cm5pbmcgaGVhZHMgd2l0aCAnICsgaG9va3Muam9pbignIGFuZCAnKSArICcuIFdoZXRoZXIgeW91XCdyZSBjcnVpc2luZyB0aGUgY2l0eSBvciBoaXR0aW5nIHRoZSBvcGVuIHJvYWQsIHRoaXMgdmVoaWNsZSBkZWxpdmVycyBzdHlsZSwgY29tZm9ydCwgYW5kIHBlcmZvcm1hbmNlIGluIG9uZSBpbmNyZWRpYmxlIHBhY2thZ2UuJyk7CiAgICB9IGVsc2UgewogICAgICAgIGxpbmVzLnB1c2goJ1RoaXMgdmVoaWNsZSBpcyBhIG11c3Qtc2VlIOKAlCB3ZWxsIG1haW50YWluZWQsIG1ldGljdWxvdXNseSBjYXJlZCBmb3IsIGFuZCByZWFkeSB0byBpbXByZXNzLiBBIHJhcmUgZmluZCBhdCB0aGlzIHByaWNlIHBvaW50IScpOwogICAgfQoKICAgIGxpbmVzLnB1c2goJycpOwogICAgbGluZXMucHVzaCgn4pyFIEtFWSBERVRBSUxTOicpOwogICAgaWYgKGQucHJpY2UpICAgbGluZXMucHVzaCgnICDigKIgQXNraW5nIFByaWNlOiAkJyArIE51bWJlcigoZC5wcmljZXx8JycpLnJlcGxhY2UoL1xEL2csJycpfHwwKS50b0xvY2FsZVN0cmluZygpKTsKICAgIGlmIChkLm1pbGVhZ2UpIGxpbmVzLnB1c2goJyAg4oCiIE1pbGVhZ2U6ICcgKyBOdW1iZXIoKGQubWlsZWFnZXx8JycpLnJlcGxhY2UoL1xEL2csJycpfHwwKS50b0xvY2FsZVN0cmluZygpICsgJyBtaWxlcycpOwogICAgaWYgKGQuY29sb3IpICAgbGluZXMucHVzaCgnICDigKIgRXh0ZXJpb3IgQ29sb3I6ICcgKyBkLmNvbG9yKTsKICAgIGlmIChkLnZpbikgICAgIGxpbmVzLnB1c2goJyAg4oCiIFZJTjogJyArIGQudmluKTsKCiAgICBpZiAoZC5kZXNjcmlwdGlvbikgewogICAgICAgIGxpbmVzLnB1c2goJycpOwogICAgICAgIGxpbmVzLnB1c2goJ/Cfk4sgRlJPTSBUSEUgREVBTEVSOicpOwogICAgICAgIGxpbmVzLnB1c2goZC5kZXNjcmlwdGlvbik7CiAgICB9CgogICAgbGluZXMucHVzaCgnJyk7CiAgICBsaW5lcy5wdXNoKCfimqEgUHJpY2VkIHRvIHNlbGwgRkFTVCDigJQgc2VyaW91cyBidXllcnMgb25seSEgTWVzc2FnZSBtZSB3aXRoIGFueSBxdWVzdGlvbnMgYW5kIElcJ2xsIGdldCBiYWNrIHRvIHlvdSByaWdodCBhd2F5LicpOwogICAgaWYgKGQudXJsKSBsaW5lcy5wdXNoKCcnLCAn8J+UlyBGdWxsIGxpc3RpbmcgJiBtb3JlIHBob3RvczogJyArIGQudXJsKTsKCiAgICByZXR1cm4gbGluZXMuam9pbignXG4nKTsKfQoKZnVuY3Rpb24gdmFsKGlkKSB7IHJldHVybiBkb2N1bWVudC5nZXRFbGVtZW50QnlJZChpZCk/LnZhbHVlPy50cmltKCkgfHwgJyc7IH0KZnVuY3Rpb24gZXNjKHN0cikgeyByZXR1cm4gKHN0cnx8JycpLnJlcGxhY2UoLyYvZywnJmFtcDsnKS5yZXBsYWNlKC8iL2csJyZxdW90OycpLnJlcGxhY2UoLzwvZywnJmx0OycpLnJlcGxhY2UoLz4vZywnJmd0OycpOyB9CgpmdW5jdGlvbiByZW5kZXJMaXN0aW5nKGQpIHsKICAgIGNvbnN0IHBob3RvQ291bnQgPSBkLmltYWdlcyA/IGQuaW1hZ2VzLnNsaWNlKDAsMTApLmxlbmd0aCA6IDA7CiAgICBjb25zdCB2aWRlb0NvdW50ID0gZC52aWRlb3MgPyBkLnZpZGVvcy5zbGljZSgwLDEpLmxlbmd0aCA6IDA7CiAgICBjb25zdCBtZWRpYUxhYmVsID0gW3Bob3RvQ291bnQgPyBwaG90b0NvdW50KycgcGhvdG8nKyhwaG90b0NvdW50PjE/J3MnOicnKSA6ICcnLCB2aWRlb0NvdW50ID8gJzEgdmlkZW8nIDogJyddLmZpbHRlcihCb29sZWFuKS5qb2luKCcsICcpIHx8ICdOb25lIGZvdW5kJzsKCiAgICBib2R5LmlubmVySFRNTCA9IGAKICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0iY2FyZC10aXRsZSI+VmVoaWNsZSBEZXRhaWxzPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImZpZWxkcyI+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJmaWVsZCI+PGxhYmVsPlllYXI8L2xhYmVsPjxpbnB1dCBpZD0iZi15ZWFyIiB2YWx1ZT0iJHtlc2MoZC55ZWFyKX0iPjwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iZmllbGQiPjxsYWJlbD5NYWtlPC9sYWJlbD48aW5wdXQgaWQ9ImYtbWFrZSIgdmFsdWU9IiR7ZXNjKGQubWFrZSl9Ij48L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImZpZWxkIj48bGFiZWw+TW9kZWw8L2xhYmVsPjxpbnB1dCBpZD0iZi1tb2RlbCIgdmFsdWU9IiR7ZXNjKGQubW9kZWwpfSI+PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJmaWVsZCI+PGxhYmVsPlRyaW08L2xhYmVsPjxpbnB1dCBpZD0iZi10cmltIiB2YWx1ZT0iJHtlc2MoZC50cmltKX0iPjwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iZmllbGQiPjxsYWJlbD5QcmljZTwvbGFiZWw+PGlucHV0IGlkPSJmLXByaWNlIiB2YWx1ZT0iJHtlc2MoZC5wcmljZSl9Ij48L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImZpZWxkIj48bGFiZWw+TWlsZWFnZTwvbGFiZWw+PGlucHV0IGlkPSJmLW1pbGVhZ2UiIHZhbHVlPSIke2VzYyhkLm1pbGVhZ2UpfSI+PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJmaWVsZCI+PGxhYmVsPkNvbG9yPC9sYWJlbD48aW5wdXQgaWQ9ImYtY29sb3IiIHZhbHVlPSIke2VzYyhkLmNvbG9yKX0iPjwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iZmllbGQiPjxsYWJlbD5WSU48L2xhYmVsPjxpbnB1dCBpZD0iZi12aW4iIHZhbHVlPSIke2VzYyhkLnZpbil9Ij48L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGRpdiBjbGFzcz0iY2FyZCI+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQtdGl0bGUiPk1hcmtldHBsYWNlIERlc2NyaXB0aW9uPC9kaXY+CiAgICAgICAgICAgIDx0ZXh0YXJlYSBpZD0iZi1kZXNjIiByb3dzPSI2Ij4ke2VzYyhidWlsZERlc2NyaXB0aW9uKGQpKX08L3RleHRhcmVhPgogICAgICAgIDwvZGl2PgogICAgICAgIDxkaXYgY2xhc3M9ImJ0bi1yb3ciPgogICAgICAgICAgICA8YnV0dG9uIGNsYXNzPSJidG4gYnRuLXNlY29uZGFyeSIgaWQ9ImJ0blJlZnJlc2giPuKGuiBSZWZyZXNoPC9idXR0b24+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biBidG4tcHJpbWFyeSIgaWQ9ImJ0bkNvcHkiPkNvcHkgRGVzY3JpcHRpb248L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8ZGl2IGNsYXNzPSJidG4tcm93IiBzdHlsZT0ibWFyZ2luLXRvcDo4cHgiPgogICAgICAgICAgICA8YnV0dG9uIGNsYXNzPSJidG4gYnRuLXNlY29uZGFyeSIgaWQ9ImJ0bkRvd25sb2FkIj7irIcgTWVkaWEgKCR7bWVkaWFMYWJlbH0pPC9idXR0b24+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biBidG4tcHJpbWFyeSIgaWQ9ImJ0bk1hcmtldHBsYWNlIiBzdHlsZT0iYmFja2dyb3VuZDojNDJiNzJhIj5BdXRvLUZpbGwgTWFya2V0cGxhY2U8L2J1dHRvbj4KICAgICAgICA8L2Rpdj5gOwoKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdidG5SZWZyZXNoJykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCBpbml0KTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdidG5Db3B5JykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoKSA9PiB7CiAgICAgICAgY29uc3QgdGV4dCA9IHJlZ2VuZXJhdGVEZXNjKCk7CiAgICAgICAgbmF2aWdhdG9yLmNsaXBib2FyZC53cml0ZVRleHQodGV4dCkudGhlbigoKSA9PiBzaG93VG9hc3QoJ0NvcGllZCEnKSkuY2F0Y2goKCkgPT4geyBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZi1kZXNjJykuc2VsZWN0KCk7IGRvY3VtZW50LmV4ZWNDb21tYW5kKCdjb3B5Jyk7IHNob3dUb2FzdCgnQ29waWVkIScpOyB9KTsKICAgIH0pOwogICAgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2J0bkRvd25sb2FkJykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoKSA9PiB7CiAgICAgICAgY29uc3QgcGhvdG9zID0gZC5pbWFnZXMgPyBkLmltYWdlcy5zbGljZSgwLDEwKSA6IFtdOwogICAgICAgIGNvbnN0IHZpZGVvcyA9IGQudmlkZW9zID8gZC52aWRlb3Muc2xpY2UoMCwxKSA6IFtdOwogICAgICAgIGlmICghcGhvdG9zLmxlbmd0aCAmJiAhdmlkZW9zLmxlbmd0aCkgeyBzaG93VG9hc3QoJ05vIG1lZGlhIGZvdW5kJyk7IHJldHVybjsgfQogICAgICAgIHBob3Rvcy5mb3JFYWNoKCh1cmwsaSkgPT4gY2hyb21lLmRvd25sb2Fkcy5kb3dubG9hZCh7IHVybCwgZmlsZW5hbWU6ICdjYXItcGhvdG8tJysoaSsxKSsnLmpwZycgfSkpOwogICAgICAgIHZpZGVvcy5mb3JFYWNoKHVybCA9PiB7CiAgICAgICAgICAgIGlmICh1cmwuaW5jbHVkZXMoJ3lvdXR1YmUnKXx8dXJsLmluY2x1ZGVzKCd5b3V0dS5iZScpfHx1cmwuaW5jbHVkZXMoJ3ZpbWVvJykpIHsgY2hyb21lLnRhYnMuY3JlYXRlKHt1cmx9KTsgfQogICAgICAgICAgICBlbHNlIHsgY29uc3QgZXh0ID0gdXJsLm1hdGNoKC9cLihtcDR8bW92fHdlYm0pL2kpPy5bMV18fCdtcDQnOyBjaHJvbWUuZG93bmxvYWRzLmRvd25sb2FkKHt1cmwsIGZpbGVuYW1lOidjYXItdmlkZW8uJytleHR9KTsgfQogICAgICAgIH0pOwogICAgICAgIHNob3dUb2FzdCgnRG93bmxvYWRpbmcgJysocGhvdG9zLmxlbmd0aCt2aWRlb3MubGVuZ3RoKSsnIGZpbGUocynigKYnKTsKICAgIH0pOwogICAgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2J0bk1hcmtldHBsYWNlJykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoKSA9PiB7CiAgICAgICAgY29uc3QgbGlzdGluZyA9IHsKICAgICAgICAgICAgeWVhcjp2YWwoJ2YteWVhcicpLCBtYWtlOnZhbCgnZi1tYWtlJyksIG1vZGVsOnZhbCgnZi1tb2RlbCcpLCB0cmltOnZhbCgnZi10cmltJyksCiAgICAgICAgICAgIHByaWNlOnZhbCgnZi1wcmljZScpLCBtaWxlYWdlOnZhbCgnZi1taWxlYWdlJyksIGNvbG9yOnZhbCgnZi1jb2xvcicpLCB2aW46dmFsKCdmLXZpbicpLAogICAgICAgICAgICBkZXNjcmlwdGlvbjpkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZi1kZXNjJyk/LnZhbHVlfHwnJywKICAgICAgICAgICAgaW1hZ2VzOmQuaW1hZ2VzfHxbXSwgdmlkZW9zOmQudmlkZW9zfHxbXSwgdXJsOmQudXJsCiAgICAgICAgfTsKICAgICAgICBjaHJvbWUuc3RvcmFnZS5sb2NhbC5zZXQoeyBkZWFsZXJMaXN0aW5nOiBsaXN0aW5nIH0sICgpID0+IHsKICAgICAgICAgICAgY2hyb21lLnRhYnMuY3JlYXRlKHsgdXJsOiAnaHR0cHM6Ly93d3cuZmFjZWJvb2suY29tL21hcmtldHBsYWNlL2NyZWF0ZS92ZWhpY2xlJyB9KTsKICAgICAgICB9KTsKICAgIH0pOwogICAgWydmLXllYXInLCdmLW1ha2UnLCdmLW1vZGVsJywnZi10cmltJywnZi1wcmljZScsJ2YtbWlsZWFnZScsJ2YtY29sb3InLCdmLXZpbiddLmZvckVhY2goaWQgPT4gewogICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKGlkKT8uYWRkRXZlbnRMaXN0ZW5lcignaW5wdXQnLCAoKSA9PiB7CiAgICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdmLWRlc2MnKS52YWx1ZSA9IHJlZ2VuZXJhdGVEZXNjKCk7CiAgICAgICAgfSk7CiAgICB9KTsKfQoKZnVuY3Rpb24gcmVnZW5lcmF0ZURlc2MoKSB7CiAgICByZXR1cm4gYnVpbGREZXNjcmlwdGlvbih7CiAgICAgICAgeWVhcjp2YWwoJ2YteWVhcicpLCBtYWtlOnZhbCgnZi1tYWtlJyksIG1vZGVsOnZhbCgnZi1tb2RlbCcpLCB0cmltOnZhbCgnZi10cmltJyksCiAgICAgICAgcHJpY2U6dmFsKCdmLXByaWNlJyksIG1pbGVhZ2U6dmFsKCdmLW1pbGVhZ2UnKSwgY29sb3I6dmFsKCdmLWNvbG9yJyksIHZpbjp2YWwoJ2YtdmluJyksCiAgICAgICAgZGVzY3JpcHRpb246ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2YtZGVzYycpPy52YWx1ZXx8JycsIHVybDonJwogICAgfSk7Cn0KCmZ1bmN0aW9uIHJlbmRlck5vTGlzdGluZygpIHsKICAgIGJvZHkuaW5uZXJIVE1MID0gYDxkaXYgY2xhc3M9Im5vLWxpc3RpbmciPjxwPk5vIHZlaGljbGUgbGlzdGluZyBkZXRlY3RlZC48YnI+TmF2aWdhdGUgdG8gYSBjYXIgbGlzdGluZyBhbmQgdHJ5IGFnYWluLjwvcD48L2Rpdj48YnV0dG9uIGNsYXNzPSJidG4gYnRuLXNlY29uZGFyeSIgaWQ9ImJ0blJldHJ5IiBzdHlsZT0ibWFyZ2luLXRvcDo0cHgiPlRyeSBBZ2FpbjwvYnV0dG9uPmA7CiAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYnRuUmV0cnknKS5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsIGluaXQpOwp9CgpmdW5jdGlvbiBlc2Moc3RyKSB7IHJldHVybiAoc3RyfHwnJykucmVwbGFjZSgvJi9nLCcmYW1wOycpLnJlcGxhY2UoLyIvZywnJnF1b3Q7JykucmVwbGFjZSgvPC9nLCcmbHQ7JykucmVwbGFjZSgvPi9nLCcmZ3Q7Jyk7IH0KCmZ1bmN0aW9uIGhhbmRsZVJlc3BvbnNlKGQpIHsKICAgIGlmIChkLnllYXJ8fGQubWFrZXx8ZC5tb2RlbHx8ZC5wcmljZXx8ZC5taWxlYWdlfHxkLnZpbikgcmVuZGVyTGlzdGluZyhkKTsKICAgIGVsc2UgcmVuZGVyTm9MaXN0aW5nKCk7Cn0KCmZ1bmN0aW9uIGluaXQoKSB7CiAgICBib2R5LmlubmVySFRNTCA9ICc8ZGl2IGNsYXNzPSJsb2FkaW5nIj48ZGl2IGNsYXNzPSJzcGlubmVyIj48L2Rpdj5TY2FubmluZyBwYWdl4oCmPC9kaXY+JzsKICAgIGNocm9tZS50YWJzLnF1ZXJ5KHsgYWN0aXZlOnRydWUsIGN1cnJlbnRXaW5kb3c6dHJ1ZSB9LCAodGFicykgPT4gewogICAgICAgIGNvbnN0IHRhYiA9IHRhYnNbMF07CiAgICAgICAgaWYgKCF0YWI/LmlkKSB7IHJlbmRlck5vTGlzdGluZygpOyByZXR1cm47IH0KICAgICAgICBjaHJvbWUudGFicy5zZW5kTWVzc2FnZSh0YWIuaWQsIHsgdHlwZTonR0VUX0xJU1RJTkcnIH0sIChyZXNwb25zZSkgPT4gewogICAgICAgICAgICBpZiAoY2hyb21lLnJ1bnRpbWUubGFzdEVycm9yIHx8ICFyZXNwb25zZSkgewogICAgICAgICAgICAgICAgY2hyb21lLnNjcmlwdGluZy5leGVjdXRlU2NyaXB0KHsgdGFyZ2V0OnsgdGFiSWQ6dGFiLmlkIH0sIGZpbGVzOlsnY29udGVudC5qcyddIH0sICgpID0+IHsKICAgICAgICAgICAgICAgICAgICBjaHJvbWUudGFicy5zZW5kTWVzc2FnZSh0YWIuaWQsIHsgdHlwZTonR0VUX0xJU1RJTkcnIH0sIChyKSA9PiB7CiAgICAgICAgICAgICAgICAgICAgICAgIGlmIChjaHJvbWUucnVudGltZS5sYXN0RXJyb3IgfHwgIXIpIHsgcmVuZGVyTm9MaXN0aW5nKCk7IHJldHVybjsgfQogICAgICAgICAgICAgICAgICAgICAgICBoYW5kbGVSZXNwb25zZShyKTsKICAgICAgICAgICAgICAgICAgICB9KTsKICAgICAgICAgICAgICAgIH0pOwogICAgICAgICAgICAgICAgcmV0dXJuOwogICAgICAgICAgICB9CiAgICAgICAgICAgIGhhbmRsZVJlc3BvbnNlKHJlc3BvbnNlKTsKICAgICAgICB9KTsKICAgIH0pOwp9Cgppbml0KCk7Cg==
+const body = document.getElementById('body');
+const toast = document.getElementById('toast');
+
+function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function buildDescription(d) {
+    const title = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
+    const lines = [];
+
+    if (title) lines.push('🚗 ' + title + ' — Don\'t Miss This One!');
+    lines.push('');
+
+    const hooks = [];
+    if (d.mileage) hooks.push('only ' + Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles');
+    if (d.color)   hooks.push('striking ' + d.color + ' exterior');
+    if (hooks.length) {
+        lines.push('This beauty is turning heads with ' + hooks.join(' and ') + '. Whether you\'re cruising the city or hitting the open road, this vehicle delivers style, comfort, and performance in one incredible package.');
+    } else {
+        lines.push('This vehicle is a must-see — well maintained, meticulously cared for, and ready to impress. A rare find at this price point!');
+    }
+
+    lines.push('');
+    lines.push('✅ KEY DETAILS:');
+    if (d.price)   lines.push('  • Asking Price: $' + Number((d.price||'').replace(/\D/g,'')||0).toLocaleString());
+    if (d.mileage) lines.push('  • Mileage: ' + Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles');
+    if (d.color)   lines.push('  • Exterior Color: ' + d.color);
+    if (d.vin)     lines.push('  • VIN: ' + d.vin);
+
+    if (d.description) {
+        lines.push('');
+        lines.push('📋 FROM THE DEALER:');
+        lines.push(d.description);
+    }
+
+    lines.push('');
+    lines.push('⚡ Priced to sell FAST — serious buyers only! Message me with any questions and I\'ll get back to you right away.');
+    if (d.url) lines.push('', '🔗 Full listing & more photos: ' + d.url);
+
+    return lines.join('\n');
+}
+
+function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
+function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderListing(d) {
+    const photoCount = d.images ? d.images.slice(0,10).length : 0;
+    const videoCount = d.videos ? d.videos.slice(0,1).length : 0;
+    const mediaLabel = [photoCount ? photoCount+' photo'+(photoCount>1?'s':'') : '', videoCount ? '1 video' : ''].filter(Boolean).join(', ') || 'None found';
+
+    body.innerHTML = `
+        <div class="card">
+            <div class="card-title">Vehicle Details</div>
+            <div class="fields">
+                <div class="field"><label>Year</label><input id="f-year" value="${esc(d.year)}"></div>
+                <div class="field"><label>Make</label><input id="f-make" value="${esc(d.make)}"></div>
+                <div class="field"><label>Model</label><input id="f-model" value="${esc(d.model)}"></div>
+                <div class="field"><label>Trim</label><input id="f-trim" value="${esc(d.trim)}"></div>
+                <div class="field"><label>Price</label><input id="f-price" value="${esc(d.price)}"></div>
+                <div class="field"><label>Mileage</label><input id="f-mileage" value="${esc(d.mileage)}"></div>
+                <div class="field"><label>Color</label><input id="f-color" value="${esc(d.color)}"></div>
+                <div class="field"><label>VIN</label><input id="f-vin" value="${esc(d.vin)}"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Marketplace Description</div>
+            <textarea id="f-desc" rows="6">${esc(buildDescription(d))}</textarea>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="btnRefresh">↺ Refresh</button>
+            <button class="btn btn-primary" id="btnCopy">Copy Description</button>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+            <button class="btn btn-secondary" id="btnDownload">⬇ Media (${mediaLabel})</button>
+            <button class="btn btn-primary" id="btnMarketplace" style="background:#42b72a">Auto-Fill Marketplace</button>
+        </div>`;
+
+    document.getElementById('btnRefresh').addEventListener('click', init);
+    document.getElementById('btnCopy').addEventListener('click', () => {
+        const text = regenerateDesc();
+        navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(() => { document.getElementById('f-desc').select(); document.execCommand('copy'); showToast('Copied!'); });
+    });
+    document.getElementById('btnDownload').addEventListener('click', () => {
+        const photos = d.images ? d.images.slice(0,10) : [];
+        const videos = d.videos ? d.videos.slice(0,1) : [];
+        if (!photos.length && !videos.length) { showToast('No media found'); return; }
+        photos.forEach((url,i) => chrome.downloads.download({ url, filename: 'car-photo-'+(i+1)+'.jpg' }));
+        videos.forEach(url => {
+            if (url.includes('youtube')||url.includes('youtu.be')||url.includes('vimeo')) { chrome.tabs.create({url}); }
+            else { const ext = url.match(/\.(mp4|mov|webm)/i)?.[1]||'mp4'; chrome.downloads.download({url, filename:'car-video.'+ext}); }
+        });
+        showToast('Downloading '+(photos.length+videos.length)+' file(s)…');
+    });
+    document.getElementById('btnMarketplace').addEventListener('click', () => {
+        const listing = {
+            year:val('f-year'), make:val('f-make'), model:val('f-model'), trim:val('f-trim'),
+            price:val('f-price'), mileage:val('f-mileage'), color:val('f-color'), vin:val('f-vin'),
+            description:document.getElementById('f-desc')?.value||'',
+            images:d.images||[], videos:d.videos||[], url:d.url
+        };
+        chrome.storage.local.set({ dealerListing: listing }, () => {
+            chrome.tabs.create({ url: 'https://www.facebook.com/marketplace/create/vehicle' });
+        });
+    });
+    ['f-year','f-make','f-model','f-trim','f-price','f-mileage','f-color','f-vin'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            document.getElementById('f-desc').value = regenerateDesc();
+        });
+    });
+}
+
+function regenerateDesc() {
+    return buildDescription({
+        year:val('f-year'), make:val('f-make'), model:val('f-model'), trim:val('f-trim'),
+        price:val('f-price'), mileage:val('f-mileage'), color:val('f-color'), vin:val('f-vin'),
+        description:document.getElementById('f-desc')?.value||'', url:''
+    });
+}
+
+function renderNoListing() {
+    body.innerHTML = `<div class="no-listing"><p>No vehicle listing detected.<br>Navigate to a car listing and try again.</p></div><button class="btn btn-secondary" id="btnRetry" style="margin-top:4px">Try Again</button>`;
+    document.getElementById('btnRetry').addEventListener('click', init);
+}
+
+function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function handleResponse(d) {
+    if (d.year||d.make||d.model||d.price||d.mileage||d.vin) renderListing(d);
+    else renderNoListing();
+}
+
+function init() {
+    body.innerHTML = '<div class="loading"><div class="spinner"></div>Scanning page…</div>';
+    chrome.tabs.query({ active:true, currentWindow:true }, (tabs) => {
+        const tab = tabs[0];
+        if (!tab?.id) { renderNoListing(); return; }
+        chrome.tabs.sendMessage(tab.id, { type:'GET_LISTING' }, (response) => {
+            if (chrome.runtime.lastError || !response) {
+                chrome.scripting.executeScript({ target:{ tabId:tab.id }, files:['content.js'] }, () => {
+                    chrome.tabs.sendMessage(tab.id, { type:'GET_LISTING' }, (r) => {
+                        if (chrome.runtime.lastError || !r) { renderNoListing(); return; }
+                        handleResponse(r);
+                    });
+                });
+                return;
+            }
+            handleResponse(response);
+        });
+    });
+}
+
+init();
