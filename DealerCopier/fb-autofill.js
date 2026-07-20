@@ -278,122 +278,34 @@
         return false;
     }
 
-    // Fetch files via background service worker (bypasses CORS)
-    function fetchViaBackground(urls) {
+    function sendToBg(msg) {
         return new Promise(resolve => {
-            chrome.runtime.sendMessage({ type: 'FETCH_FILES', urls }, resp => {
+            chrome.runtime.sendMessage(msg, resp => {
                 if (chrome.runtime.lastError) {
-                    console.warn('[DM] BG fetch error:', chrome.runtime.lastError.message);
-                    resolve([]);
+                    console.warn('[DM] BG error:', chrome.runtime.lastError.message);
+                    resolve(null);
                 } else {
-                    resolve(resp ? resp.results : []);
+                    resolve(resp);
                 }
             });
         });
-    }
-
-    function base64ToFile(base64, mimeType, filename) {
-        const binary = atob(base64);
-        const arr = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-        return new File([arr.buffer], filename, { type: mimeType });
-    }
-
-    // Directly call React's onChange on an element (bypasses event delegation)
-    function callReactOnChange(el, fileList) {
-        // Set files on the element first
-        try {
-            Object.defineProperty(el, 'files', { configurable: true, get: () => fileList });
-        } catch(e) {
-            try { el.files = fileList; } catch(_) {}
-        }
-
-        const fakeEvent = {
-            target: el, currentTarget: el, type: 'change',
-            bubbles: true, cancelable: false,
-            preventDefault() {}, stopPropagation() {}, persist() {}
-        };
-
-        // React 17+: props stored on __reactProps$<hash>
-        const propsKey = Object.keys(el).find(k => k.startsWith('__reactProps$'));
-        if (propsKey) {
-            const props = el[propsKey];
-            if (props && typeof props.onChange === 'function') {
-                try { props.onChange(fakeEvent); return true; } catch(e) { console.warn('[DM] reactProps onChange:', e.message); }
-            }
-        }
-
-        // React 16: walk fiber tree for onChange
-        const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
-        if (fiberKey) {
-            let node = el[fiberKey];
-            while (node) {
-                const props = node.memoizedProps;
-                if (props && typeof props.onChange === 'function') {
-                    try { props.onChange(fakeEvent); return true; } catch(e) { console.warn('[DM] fiber onChange:', e.message); }
-                }
-                node = node.return;
-            }
-        }
-
-        // Fallback: dispatch native change event (may not reach React)
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        el.dispatchEvent(new Event('input',  { bubbles: true }));
-        return false;
-    }
-
-    function dropFilesOnZone(zone, dt) {
-        if (!zone) return false;
-        ['dragenter', 'dragover', 'drop'].forEach(type => {
-            zone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
-        });
-        return true;
     }
 
     async function uploadPhotos(images) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
-        status('Fetching photos...');
+        status('Fetching photos (' + urls.length + ')...');
+        console.log('[DM] Sending UPLOAD_PHOTOS to background for', urls.length, 'images');
 
-        const results = await fetchViaBackground(urls);
-        const files = results
-            .filter(r => r.base64 && !r.error)
-            .map((r, i) => {
-                const ext = (r.mimeType || 'image/jpeg').split('/')[1].split('+')[0] || 'jpg';
-                return base64ToFile(r.base64, r.mimeType || 'image/jpeg', 'photo-' + (i + 1) + '.' + ext);
-            });
-
-        if (!files.length) { console.warn('[DM] No photos fetched'); return; }
-        console.log('[DM] Fetched', files.length, 'photos, attempting upload');
-
-        status('Uploading ' + files.length + ' photos...');
-        const dt = new DataTransfer();
-        files.forEach(f => dt.items.add(f));
-
-        // Find all file inputs and call React's onChange on each
-        const allInputs = Array.from(document.querySelectorAll('input[type="file"]'));
-        console.log('[DM] File inputs found:', allInputs.length);
-        for (const inp of allInputs) {
-            callReactOnChange(inp, dt.files);
-            await sleep(400);
+        const resp = await sendToBg({ type: 'UPLOAD_PHOTOS', urls });
+        if (resp && resp.ok) {
+            console.log('[DM] Photo upload result:', JSON.stringify(resp.result));
+            status('Photos uploaded!');
+        } else {
+            console.warn('[DM] Photo upload failed:', resp && resp.error);
+            status('Photo upload failed');
         }
-        await sleep(1500);
-
-        // Also try drag-drop on likely upload zones
-        const zones = Array.from(new Set([
-            document.querySelector('[aria-label*="photo" i]'),
-            document.querySelector('[aria-label*="Add photo" i]'),
-            document.querySelector('[aria-label*="image" i][role="button"]'),
-            document.querySelector('[data-testid*="photo"]'),
-            ...document.querySelectorAll('[role="button"]'),
-        ].filter(Boolean))).slice(0, 6);
-
-        for (const zone of zones) {
-            dropFilesOnZone(zone, dt);
-            await sleep(300);
-        }
-        await sleep(2000);
-        console.log('[DM] Photo upload done');
+        await sleep(3000);
     }
 
     async function uploadVideo(videos) {
@@ -406,36 +318,16 @@
         }
 
         status('Fetching video...');
-        const results = await fetchViaBackground([url]);
-        const r = results[0];
-        if (!r || r.error || !r.base64) {
-            console.warn('[DM] Video fetch failed:', r && r.error);
-            return;
-        }
+        console.log('[DM] Sending UPLOAD_VIDEO to background');
 
-        const ext = (r.mimeType || 'video/mp4').split('/')[1].split('+')[0] || 'mp4';
-        const file = base64ToFile(r.base64, r.mimeType || 'video/mp4', 'car-video.' + ext);
-        const dt = new DataTransfer();
-        dt.items.add(file);
-
-        status('Uploading video...');
-        const allInputs = Array.from(document.querySelectorAll('input[type="file"]'));
-        for (const inp of allInputs) {
-            callReactOnChange(inp, dt.files);
-            await sleep(400);
+        const resp = await sendToBg({ type: 'UPLOAD_VIDEO', url });
+        if (resp && resp.ok) {
+            console.log('[DM] Video upload done');
+            status('Video uploaded!');
+        } else {
+            console.warn('[DM] Video upload failed:', resp && resp.error);
         }
-        await sleep(1500);
-
-        const videoZones = [
-            document.querySelector('[aria-label*="video" i]'),
-            document.querySelector('[aria-label*="Add video" i]'),
-        ].filter(Boolean);
-        for (const zone of videoZones) {
-            dropFilesOnZone(zone, dt);
-            await sleep(300);
-        }
-        await sleep(2000);
-        console.log('[DM] Video upload done');
+        await sleep(3000);
     }
 
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
