@@ -1,187 +1,147 @@
-// Background service worker — fetches media without CORS, injects into page MAIN world
+// Background service worker
+// Uses chrome.downloads to save images to disk, then CDP DOM.setFileInputFiles
+// to set them on the file input — this fires a TRUSTED change event Facebook accepts.
+
+// Download a URL to the user's Downloads folder, return the full file path
+function downloadToFile(url, filename) {
+    return new Promise((resolve, reject) => {
+        let dlId = null;
+
+        const onChanged = (delta) => {
+            if (delta.id !== dlId) return;
+            if (delta.state && delta.state.current === 'complete') {
+                chrome.downloads.onChanged.removeListener(onChanged);
+                chrome.downloads.search({ id: dlId }, (items) => {
+                    if (items && items[0]) resolve(items[0].filename);
+                    else reject(new Error('Download item not found'));
+                });
+            } else if (delta.state && delta.state.current === 'interrupted') {
+                chrome.downloads.onChanged.removeListener(onChanged);
+                reject(new Error('Download interrupted'));
+            }
+        };
+
+        chrome.downloads.onChanged.addListener(onChanged);
+
+        chrome.downloads.download({
+            url,
+            filename: 'DealerCopier/' + filename,
+            saveAs: false,
+            conflictAction: 'overwrite'
+        }, (id) => {
+            if (chrome.runtime.lastError) {
+                chrome.downloads.onChanged.removeListener(onChanged);
+                reject(new Error(chrome.runtime.lastError.message));
+            } else {
+                dlId = id;
+            }
+        });
+    });
+}
+
+// Use CDP to set files on a file input — fires a trusted change event
+async function cdpSetFiles(tabId, selector, filePaths) {
+    const dbg = { tabId };
+    try {
+        await chrome.debugger.attach(dbg, '1.3');
+        const doc = await chrome.debugger.sendCommand(dbg, 'DOM.getDocument', { depth: 0 });
+        const found = await chrome.debugger.sendCommand(dbg, 'DOM.querySelector', {
+            nodeId: doc.root.nodeId,
+            selector
+        });
+        if (!found.nodeId) throw new Error('File input not found: ' + selector);
+        await chrome.debugger.sendCommand(dbg, 'DOM.setFileInputFiles', {
+            nodeId: found.nodeId,
+            files: filePaths
+        });
+        return true;
+    } finally {
+        try { await chrome.debugger.detach(dbg); } catch (_) {}
+    }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
-    if (msg.type === 'FETCH_FILES') {
-        (async () => {
-            const results = [];
-            for (const url of msg.urls) {
-                try {
-                    const resp = await fetch(url);
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    const buffer = await resp.arrayBuffer();
-                    const mimeType = resp.headers.get('content-type') || 'application/octet-stream';
-                    const bytes = new Uint8Array(buffer);
-                    let binary = '';
-                    for (let i = 0; i < bytes.length; i += 8192)
-                        binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
-                    results.push({ url, base64: btoa(binary), mimeType });
-                } catch (e) {
-                    console.warn('[DM BG] Fetch failed:', url, e.message);
-                    results.push({ url, error: e.message });
-                }
-            }
-            sendResponse({ results });
-        })();
-        return true;
-    }
-
-    // Fetch images + inject into Facebook's React context via MAIN world
+    // UPLOAD_PHOTOS: download images to disk, then set via CDP
     if (msg.type === 'UPLOAD_PHOTOS') {
         (async () => {
             try {
-                const filesData = [];
-                for (const url of msg.urls) {
+                const urls = msg.urls || [];
+                console.log('[DM BG] Downloading', urls.length, 'photos...');
+
+                const filePaths = [];
+                for (let i = 0; i < urls.length; i++) {
                     try {
-                        const resp = await fetch(url);
-                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                        const buf = await resp.arrayBuffer();
-                        const mime = (resp.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
-                        const bytes = new Uint8Array(buf);
-                        let b = '';
-                        for (let i = 0; i < bytes.length; i += 8192)
-                            b += String.fromCharCode(...bytes.subarray(i, i + 8192));
-                        filesData.push({ base64: btoa(b), mime });
-                        console.log('[DM BG] Fetched photo', filesData.length, 'mime:', mime);
+                        const ext = urls[i].split('?')[0].split('.').pop().split('/').pop() || 'jpg';
+                        const name = 'photo-' + (i + 1) + '.' + (ext.length <= 4 ? ext : 'jpg');
+                        const path = await downloadToFile(urls[i], name);
+                        filePaths.push(path);
+                        console.log('[DM BG] Downloaded photo', i + 1, '->', path);
                     } catch (e) {
-                        console.warn('[DM BG] Photo fetch failed:', url, e.message);
+                        console.warn('[DM BG] Photo download failed:', urls[i], e.message);
                     }
                 }
 
-                if (!filesData.length) { sendResponse({ ok: false, error: 'No photos fetched' }); return; }
+                if (!filePaths.length) {
+                    sendResponse({ ok: false, error: 'No photos downloaded' });
+                    return;
+                }
 
-                // Inject into Facebook's JavaScript world (MAIN) so React sees the files
-                const results = await chrome.scripting.executeScript({
-                    target: { tabId: sender.tab.id },
-                    world: 'MAIN',
-                    func: (data) => {
-                        try {
-                            // Build File objects from base64
-                            const files = data.map((d, i) => {
-                                const bin = atob(d.base64);
-                                const arr = new Uint8Array(bin.length);
-                                for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
-                                const ext = d.mime.split('/')[1] || 'jpg';
-                                return new File([arr.buffer], 'photo-' + (i + 1) + '.' + ext, { type: d.mime });
-                            });
+                console.log('[DM BG] Setting', filePaths.length, 'files via CDP...');
 
-                            const dt = new DataTransfer();
-                            files.forEach(f => dt.items.add(f));
+                // Try the image-specific input first, then any file input
+                let ok = false;
+                const selectors = [
+                    'input[type="file"][accept*="image"]',
+                    'input[type="file"]:not([accept*="video"])',
+                    'input[type="file"]'
+                ];
+                for (const sel of selectors) {
+                    try {
+                        ok = await cdpSetFiles(sender.tab.id, sel, filePaths);
+                        if (ok) { console.log('[DM BG] CDP success with selector:', sel); break; }
+                    } catch (e) {
+                        console.warn('[DM BG] CDP failed for selector', sel, ':', e.message);
+                    }
+                }
 
-                            let triggered = false;
-
-                            // Try every file input on the page
-                            for (const inp of document.querySelectorAll('input[type="file"]')) {
-                                // Override files so React reads our list
-                                Object.defineProperty(inp, 'files', { configurable: true, get: () => dt.files });
-
-                                // Call React's onChange directly (React 17+ stores props on __reactProps$...)
-                                const rk = Object.keys(inp).find(k => k.startsWith('__reactProps$'));
-                                if (rk && inp[rk] && typeof inp[rk].onChange === 'function') {
-                                    inp[rk].onChange({
-                                        target: inp, currentTarget: inp,
-                                        type: 'change', bubbles: true, cancelable: false,
-                                        nativeEvent: new Event('change', { bubbles: true }),
-                                        preventDefault() {}, stopPropagation() {}, persist() {}
-                                    });
-                                    triggered = true;
-                                    console.log('[DM] React onChange called on input', inp.accept);
-                                }
-
-                                // Also fire native event as fallback
-                                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                                inp.dispatchEvent(new Event('input',  { bubbles: true }));
-                            }
-
-                            // Try drag-drop on photo upload zones
-                            const zones = [
-                                document.querySelector('[aria-label*="photo" i]'),
-                                document.querySelector('[aria-label*="Add photo" i]'),
-                                document.querySelector('[role="button"][aria-label*="photo" i]'),
-                            ].filter(Boolean);
-
-                            for (const zone of zones) {
-                                ['dragenter', 'dragover', 'drop'].forEach(type => {
-                                    zone.dispatchEvent(new DragEvent(type, {
-                                        bubbles: true, cancelable: true, dataTransfer: dt
-                                    }));
-                                });
-                                console.log('[DM] Dropped on zone:', zone.getAttribute('aria-label'));
-                            }
-
-                            console.log('[DM MAIN] Upload attempt done, files:', files.length, 'triggered:', triggered);
-                            return { ok: true, count: files.length, triggered };
-                        } catch (err) {
-                            console.error('[DM MAIN] Error:', err.message);
-                            return { ok: false, error: err.message };
-                        }
-                    },
-                    args: [filesData]
-                });
-
-                sendResponse({ ok: true, result: results && results[0] && results[0].result });
+                sendResponse({ ok, count: filePaths.length });
             } catch (e) {
-                console.error('[DM BG] UPLOAD_PHOTOS failed:', e.message);
+                console.error('[DM BG] UPLOAD_PHOTOS error:', e.message);
                 sendResponse({ ok: false, error: e.message });
             }
         })();
         return true;
     }
 
-    // Fetch video + inject into page MAIN world
+    // UPLOAD_VIDEO: download video to disk, then set via CDP
     if (msg.type === 'UPLOAD_VIDEO') {
         (async () => {
             try {
                 const url = msg.url;
-                const resp = await fetch(url);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const buf = await resp.arrayBuffer();
-                const mime = (resp.headers.get('content-type') || 'video/mp4').split(';')[0].trim();
-                const bytes = new Uint8Array(buf);
-                let b = '';
-                for (let i = 0; i < bytes.length; i += 8192)
-                    b += String.fromCharCode(...bytes.subarray(i, i + 8192));
-                const fileData = { base64: btoa(b), mime };
+                console.log('[DM BG] Downloading video:', url);
 
-                await chrome.scripting.executeScript({
-                    target: { tabId: sender.tab.id },
-                    world: 'MAIN',
-                    func: (d) => {
-                        const bin = atob(d.base64);
-                        const arr = new Uint8Array(bin.length);
-                        for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
-                        const ext = d.mime.split('/')[1] || 'mp4';
-                        const file = new File([arr.buffer], 'car-video.' + ext, { type: d.mime });
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
+                const ext = url.split('?')[0].split('.').pop() || 'mp4';
+                const path = await downloadToFile(url, 'car-video.' + (ext.length <= 4 ? ext : 'mp4'));
+                console.log('[DM BG] Video downloaded ->', path);
 
-                        for (const inp of document.querySelectorAll('input[type="file"]')) {
-                            Object.defineProperty(inp, 'files', { configurable: true, get: () => dt.files });
-                            const rk = Object.keys(inp).find(k => k.startsWith('__reactProps$'));
-                            if (rk && inp[rk] && typeof inp[rk].onChange === 'function') {
-                                inp[rk].onChange({
-                                    target: inp, currentTarget: inp, type: 'change', bubbles: true,
-                                    nativeEvent: new Event('change', { bubbles: true }),
-                                    preventDefault() {}, stopPropagation() {}, persist() {}
-                                });
-                            }
-                            inp.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
+                const selectors = [
+                    'input[type="file"][accept*="video"]',
+                    'input[type="file"]'
+                ];
+                let ok = false;
+                for (const sel of selectors) {
+                    try {
+                        ok = await cdpSetFiles(sender.tab.id, sel, [path]);
+                        if (ok) { console.log('[DM BG] Video CDP success:', sel); break; }
+                    } catch (e) {
+                        console.warn('[DM BG] Video CDP failed:', sel, e.message);
+                    }
+                }
 
-                        const vzone = document.querySelector('[aria-label*="video" i]')
-                                   || document.querySelector('[aria-label*="Add video" i]');
-                        if (vzone) {
-                            ['dragenter', 'dragover', 'drop'].forEach(type => {
-                                vzone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
-                            });
-                        }
-                        console.log('[DM MAIN] Video upload attempted');
-                    },
-                    args: [fileData]
-                });
-
-                sendResponse({ ok: true });
+                sendResponse({ ok });
             } catch (e) {
-                console.error('[DM BG] UPLOAD_VIDEO failed:', e.message);
+                console.error('[DM BG] UPLOAD_VIDEO error:', e.message);
                 sendResponse({ ok: false, error: e.message });
             }
         })();

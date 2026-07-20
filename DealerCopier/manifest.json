@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Dealer to Marketplace",
-  "version": "3.2",
+  "version": "3.3",
   "description": "Extract car listings and auto-fill Facebook Marketplace.",
-  "permissions": ["activeTab", "scripting", "clipboardWrite", "storage", "tabs", "downloads"],
+  "permissions": ["activeTab", "scripting", "clipboardWrite", "storage", "tabs", "downloads", "debugger"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html" },

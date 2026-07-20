@@ -349,9 +349,6 @@
             photos: (d.images || []).length
         }));
 
-        if (d.images && d.images.length) await uploadPhotos(d.images);
-        if (d.videos && d.videos.length) await uploadVideo(d.videos);
-
         status('Vehicle type...');
         await fillDropdown(
             ['Vehicle type', 'vehicle type', 'Type', 'Category'],
@@ -446,6 +443,10 @@
 
         status('Clean title...');
         await tickCheckbox(['clean title', 'Clean title']);
+
+        // Upload photos and video after form is fully loaded
+        if (d.images && d.images.length) await uploadPhotos(d.images);
+        if (d.videos && d.videos.length) await uploadVideo(d.videos);
 
         btn.textContent = 'Done! Review & submit';
         btn.style.background = '#42b72a';
