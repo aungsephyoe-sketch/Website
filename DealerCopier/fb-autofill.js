@@ -278,73 +278,55 @@
         return false;
     }
 
+    function sendToBg(msg) {
+        return new Promise(resolve => {
+            chrome.runtime.sendMessage(msg, resp => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[DM] BG error:', chrome.runtime.lastError.message);
+                    resolve(null);
+                } else {
+                    resolve(resp);
+                }
+            });
+        });
+    }
+
     async function uploadPhotos(images) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
-        status('Photos (' + urls.length + ')...');
+        status('Downloading ' + urls.length + ' photos...');
+        console.log('[DM] Requesting photo upload via background:', urls.length, 'images');
 
-        const photoInput = await waitFor(() =>
-            document.querySelector('input[type="file"][accept*="image"], input[type="file"]'), 3000);
-        if (!photoInput) { console.warn('[DM] Photo input not found'); return; }
-
-        const files = [];
-        for (let i = 0; i < urls.length; i++) {
-            status('Fetching photo ' + (i + 1) + '/' + urls.length + '...');
-            try {
-                const resp = await fetch(urls[i]);
-                const blob = await resp.blob();
-                const ext = (blob.type || 'image/jpeg').split('/')[1].split('+')[0] || 'jpg';
-                files.push(new File([blob], 'photo-' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' }));
-                console.log('[DM] Fetched photo ' + (i + 1) + '/' + urls.length);
-            } catch(e) {
-                console.warn('[DM] Could not fetch photo:', urls[i], e.message);
-            }
+        const resp = await sendToBg({ type: 'UPLOAD_PHOTOS', urls });
+        if (resp && resp.ok) {
+            status('Photos uploaded (' + resp.count + ')!');
+            console.log('[DM] Photos uploaded successfully:', resp.count);
+        } else {
+            console.warn('[DM] Photo upload failed:', resp && resp.error);
+            status('Photo upload failed — check console');
         }
-
-        if (!files.length) { console.warn('[DM] No photos fetched'); return; }
-
-        try {
-            const dt = new DataTransfer();
-            files.forEach(f => dt.items.add(f));
-            photoInput.files = dt.files;
-            photoInput.dispatchEvent(new Event('change', { bubbles: true }));
-            photoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-            await sleep(2500);
-            console.log('[DM] Photos set:', files.length);
-        } catch(e) {
-            console.warn('[DM] Photo upload failed:', e.message);
-        }
+        await sleep(2000);
     }
 
     async function uploadVideo(videos) {
         if (!videos || !videos.length) return;
         const url = videos[0];
         if (/youtube|youtu\.be|vimeo/.test(url)) {
-            console.warn('[DM] Video is YouTube/Vimeo — cannot upload:', url);
+            console.warn('[DM] Skipping YouTube/Vimeo video:', url);
             return;
         }
 
-        status('Fetching video...');
-        const videoInput = await waitFor(() =>
-            document.querySelector('input[type="file"][accept*="video"]') ||
-            document.querySelector('input[type="file"]'), 3000);
-        if (!videoInput) { console.warn('[DM] Video input not found'); return; }
+        status('Uploading video...');
+        console.log('[DM] Requesting video upload via background:', url);
 
-        try {
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            const ext = (blob.type || 'video/mp4').split('/')[1].split('+')[0] || 'mp4';
-            const file = new File([blob], 'car-video.' + ext, { type: blob.type || 'video/mp4' });
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            videoInput.files = dt.files;
-            videoInput.dispatchEvent(new Event('change', { bubbles: true }));
-            videoInput.dispatchEvent(new Event('input',  { bubbles: true }));
-            await sleep(2500);
-            console.log('[DM] Video set');
-        } catch(e) {
-            console.warn('[DM] Video upload failed:', e.message);
+        const resp = await sendToBg({ type: 'UPLOAD_VIDEO', url });
+        if (resp && resp.ok) {
+            status('Video uploaded!');
+            console.log('[DM] Video uploaded');
+        } else {
+            console.warn('[DM] Video upload failed:', resp && resp.error);
         }
+        await sleep(2000);
     }
 
     function status(msg) { btn.textContent = msg; console.log('[DM]', msg); }
@@ -366,9 +348,10 @@
             photos: (d.images || []).length
         }));
 
-        // Upload photos + video first while form is at top
+        // Upload photos + video first (file inputs are present before other fields are filled)
         if (d.images && d.images.length) await uploadPhotos(d.images);
         if (d.videos && d.videos.length) await uploadVideo(d.videos);
+        await sleep(1000);
 
         status('Vehicle type...');
         await fillDropdown(
@@ -464,10 +447,6 @@
 
         status('Clean title...');
         await tickCheckbox(['clean title', 'Clean title']);
-
-        // Upload photos and video after form is fully loaded
-        if (d.images && d.images.length) await uploadPhotos(d.images);
-        if (d.videos && d.videos.length) await uploadVideo(d.videos);
 
         btn.textContent = 'Done! Review & submit';
         btn.style.background = '#42b72a';

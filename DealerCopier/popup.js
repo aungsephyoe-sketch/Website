@@ -8,37 +8,36 @@ function showToast(msg) {
 }
 
 function buildDescription(d) {
-    const title = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
     const lines = [];
+    const title = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
+    const price = d.price ? '$' + Number((d.price||'').replace(/\D/g,'')||0).toLocaleString() : '';
+    const miles = d.mileage ? Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles' : '';
 
-    if (title) lines.push('🚗 ' + title + ' — Don\'t Miss This One!');
+    // Headline
+    const headline = [title, price].filter(Boolean).join(' — ');
+    if (headline) lines.push(headline);
     lines.push('');
 
-    const hooks = [];
-    if (d.mileage) hooks.push('only ' + Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles');
-    if (d.color)   hooks.push('striking ' + d.color + ' exterior');
-    if (hooks.length) {
-        lines.push('This beauty is turning heads with ' + hooks.join(' and ') + '. Whether you\'re cruising the city or hitting the open road, this vehicle delivers style, comfort, and performance in one incredible package.');
-    } else {
-        lines.push('This vehicle is a must-see — well maintained, meticulously cared for, and ready to impress. A rare find at this price point!');
-    }
+    // Key specs on one line
+    const specs = [miles, d.color, d.interiorColor ? d.interiorColor + ' interior' : ''].filter(Boolean);
+    if (specs.length) lines.push(specs.join(' · '));
 
-    lines.push('');
-    lines.push('✅ KEY DETAILS:');
-    if (d.price)   lines.push('  • Asking Price: $' + Number((d.price||'').replace(/\D/g,'')||0).toLocaleString());
-    if (d.mileage) lines.push('  • Mileage: ' + Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles');
-    if (d.color)   lines.push('  • Exterior Color: ' + d.color);
-    if (d.vin)     lines.push('  • VIN: ' + d.vin);
-
+    // Dealer description — trimmed to essentials, no duplicated specs
     if (d.description) {
-        lines.push('');
-        lines.push('📋 FROM THE DEALER:');
-        lines.push(d.description);
+        const cleaned = d.description
+            .replace(/\r\n/g, '\n')
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l.length > 10)
+            .slice(0, 6)
+            .join('\n');
+        if (cleaned) { lines.push(''); lines.push(cleaned); }
     }
 
     lines.push('');
-    lines.push('⚡ Priced to sell FAST — serious buyers only! Message me with any questions and I\'ll get back to you right away.');
-    if (d.url) lines.push('', '🔗 Full listing & more photos: ' + d.url);
+    lines.push('Clean title. Message with any questions.');
+    if (d.vin) lines.push('VIN: ' + d.vin);
+    if (d.url) lines.push('Full listing: ' + d.url);
 
     return lines.join('\n');
 }

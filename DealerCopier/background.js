@@ -1,37 +1,39 @@
 // Background service worker
-// Uses chrome.downloads to save images to disk, then CDP DOM.setFileInputFiles
-// to set them on the file input — this fires a TRUSTED change event Facebook accepts.
+// Downloads images to disk via chrome.downloads, then injects them into
+// the FB file input using CDP DOM.setFileInputFiles (fires a trusted event).
 
-// Download a URL to the user's Downloads folder, return the full file path
-function downloadToFile(url, filename) {
-    return new Promise((resolve, reject) => {
+function downloadFile(url, filename) {
+    return new Promise((resolve) => {
         let dlId = null;
+        const timeout = setTimeout(() => resolve(null), 30000);
 
         const onChanged = (delta) => {
             if (delta.id !== dlId) return;
             if (delta.state && delta.state.current === 'complete') {
                 chrome.downloads.onChanged.removeListener(onChanged);
+                clearTimeout(timeout);
                 chrome.downloads.search({ id: dlId }, (items) => {
-                    if (items && items[0]) resolve(items[0].filename);
-                    else reject(new Error('Download item not found'));
+                    resolve(items && items[0] ? items[0].filename : null);
                 });
             } else if (delta.state && delta.state.current === 'interrupted') {
                 chrome.downloads.onChanged.removeListener(onChanged);
-                reject(new Error('Download interrupted'));
+                clearTimeout(timeout);
+                resolve(null);
             }
         };
 
         chrome.downloads.onChanged.addListener(onChanged);
-
         chrome.downloads.download({
             url,
-            filename: 'DealerCopier/' + filename,
+            filename,
             saveAs: false,
             conflictAction: 'overwrite'
         }, (id) => {
-            if (chrome.runtime.lastError) {
+            if (chrome.runtime.lastError || !id) {
                 chrome.downloads.onChanged.removeListener(onChanged);
-                reject(new Error(chrome.runtime.lastError.message));
+                clearTimeout(timeout);
+                console.warn('[DM BG] Download start failed:', chrome.runtime.lastError?.message);
+                resolve(null);
             } else {
                 dlId = id;
             }
@@ -39,22 +41,33 @@ function downloadToFile(url, filename) {
     });
 }
 
-// Use CDP to set files on a file input — fires a trusted change event
 async function cdpSetFiles(tabId, selector, filePaths) {
     const dbg = { tabId };
     try {
         await chrome.debugger.attach(dbg, '1.3');
+        console.log('[DM BG] Debugger attached');
+
         const doc = await chrome.debugger.sendCommand(dbg, 'DOM.getDocument', { depth: 0 });
         const found = await chrome.debugger.sendCommand(dbg, 'DOM.querySelector', {
             nodeId: doc.root.nodeId,
             selector
         });
-        if (!found.nodeId) throw new Error('File input not found: ' + selector);
+
+        if (!found || !found.nodeId) {
+            console.warn('[DM BG] File input not found:', selector);
+            return false;
+        }
+
+        console.log('[DM BG] Found input node:', found.nodeId, '— setting', filePaths.length, 'files');
         await chrome.debugger.sendCommand(dbg, 'DOM.setFileInputFiles', {
             nodeId: found.nodeId,
             files: filePaths
         });
+        console.log('[DM BG] DOM.setFileInputFiles succeeded');
         return true;
+    } catch (e) {
+        console.error('[DM BG] CDP error:', e.message);
+        return false;
     } finally {
         try { await chrome.debugger.detach(dbg); } catch (_) {}
     }
@@ -62,68 +75,65 @@ async function cdpSetFiles(tabId, selector, filePaths) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
-    // UPLOAD_PHOTOS: download images to disk, then set via CDP
     if (msg.type === 'UPLOAD_PHOTOS') {
         (async () => {
             try {
-                const urls = msg.urls || [];
+                const urls = (msg.urls || []).slice(0, 10);
                 console.log('[DM BG] Downloading', urls.length, 'photos...');
 
-                const filePaths = [];
-                for (let i = 0; i < urls.length; i++) {
-                    try {
-                        const ext = urls[i].split('?')[0].split('.').pop().split('/').pop() || 'jpg';
-                        const name = 'photo-' + (i + 1) + '.' + (ext.length <= 4 ? ext : 'jpg');
-                        const path = await downloadToFile(urls[i], name);
-                        filePaths.push(path);
-                        console.log('[DM BG] Downloaded photo', i + 1, '->', path);
-                    } catch (e) {
-                        console.warn('[DM BG] Photo download failed:', urls[i], e.message);
-                    }
-                }
+                // Download all images in parallel
+                const paths = (await Promise.all(
+                    urls.map((url, i) => {
+                        const raw = url.split('?')[0];
+                        const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
+                    })
+                )).filter(Boolean);
 
-                if (!filePaths.length) {
+                console.log('[DM BG] Downloaded', paths.length, 'files:', paths);
+
+                if (!paths.length) {
                     sendResponse({ ok: false, error: 'No photos downloaded' });
                     return;
                 }
 
-                console.log('[DM BG] Setting', filePaths.length, 'files via CDP...');
+                const tabId = sender.tab.id;
 
-                // Try the image-specific input first, then any file input
-                let ok = false;
+                // Try photo-specific input first, then any file input
                 const selectors = [
                     'input[type="file"][accept*="image"]',
                     'input[type="file"]:not([accept*="video"])',
                     'input[type="file"]'
                 ];
+
+                let ok = false;
                 for (const sel of selectors) {
-                    try {
-                        ok = await cdpSetFiles(sender.tab.id, sel, filePaths);
-                        if (ok) { console.log('[DM BG] CDP success with selector:', sel); break; }
-                    } catch (e) {
-                        console.warn('[DM BG] CDP failed for selector', sel, ':', e.message);
-                    }
+                    ok = await cdpSetFiles(tabId, sel, paths);
+                    if (ok) break;
+                    await new Promise(r => setTimeout(r, 500));
                 }
 
-                sendResponse({ ok, count: filePaths.length });
+                sendResponse({ ok, count: paths.length });
             } catch (e) {
-                console.error('[DM BG] UPLOAD_PHOTOS error:', e.message);
+                console.error('[DM BG] UPLOAD_PHOTOS failed:', e.message);
                 sendResponse({ ok: false, error: e.message });
             }
         })();
         return true;
     }
 
-    // UPLOAD_VIDEO: download video to disk, then set via CDP
     if (msg.type === 'UPLOAD_VIDEO') {
         (async () => {
             try {
                 const url = msg.url;
-                console.log('[DM BG] Downloading video:', url);
+                const raw = url.split('?')[0];
+                const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
+                const path = await downloadFile(url, 'DealerCopier/car-video.' + ext);
 
-                const ext = url.split('?')[0].split('.').pop() || 'mp4';
-                const path = await downloadToFile(url, 'car-video.' + (ext.length <= 4 ? ext : 'mp4'));
-                console.log('[DM BG] Video downloaded ->', path);
+                if (!path) { sendResponse({ ok: false, error: 'Video download failed' }); return; }
+
+                console.log('[DM BG] Video downloaded:', path);
+                const tabId = sender.tab.id;
 
                 const selectors = [
                     'input[type="file"][accept*="video"]',
@@ -131,17 +141,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 ];
                 let ok = false;
                 for (const sel of selectors) {
-                    try {
-                        ok = await cdpSetFiles(sender.tab.id, sel, [path]);
-                        if (ok) { console.log('[DM BG] Video CDP success:', sel); break; }
-                    } catch (e) {
-                        console.warn('[DM BG] Video CDP failed:', sel, e.message);
-                    }
+                    ok = await cdpSetFiles(tabId, sel, [path]);
+                    if (ok) break;
                 }
 
                 sendResponse({ ok });
             } catch (e) {
-                console.error('[DM BG] UPLOAD_VIDEO error:', e.message);
+                console.error('[DM BG] UPLOAD_VIDEO failed:', e.message);
                 sendResponse({ ok: false, error: e.message });
             }
         })();
