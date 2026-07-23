@@ -35,7 +35,7 @@ function buildDescription(d) {
     }
 
     lines.push('');
-    lines.push('Clean title. Message with any questions.');
+    lines.push('Clean title, no accidents. My name is Aung — direct line 469-881-3778 if you have any questions.');
     if (d.vin) lines.push('VIN: ' + d.vin);
     if (d.url) lines.push('Full listing: ' + d.url);
 
@@ -73,11 +73,11 @@ function renderListing(d) {
             <button class="btn btn-primary" id="btnCopy">Copy Description</button>
         </div>
         <div class="btn-row" style="margin-top:8px">
-            <button class="btn btn-secondary" id="btnDownload">⬇ Media (${mediaLabel})</button>
-            <button class="btn btn-primary" id="btnMarketplace" style="background:#42b72a">Auto-Fill Marketplace</button>
+            <button class="btn btn-secondary" id="btnDownload" style="width:100%">⬇ Save 10 Photos (${photoCount} found)</button>
         </div>
         <div class="btn-row" style="margin-top:8px">
-            <button class="btn btn-primary" id="btnPhotoPost" style="background:#e05c00;width:100%">📸 Save 10 Photos + Post to Marketplace</button>
+            <button class="btn btn-primary" id="btnMarketplace" style="background:#42b72a">Auto-Fill Marketplace</button>
+            <button class="btn btn-primary" id="btnPhotoPost" style="background:#e05c00">📸 Save & Post</button>
         </div>`;
 
     document.getElementById('btnRefresh').addEventListener('click', init);
@@ -87,14 +87,20 @@ function renderListing(d) {
     });
     document.getElementById('btnDownload').addEventListener('click', () => {
         const photos = d.images ? d.images.slice(0,10) : [];
-        const videos = d.videos ? d.videos.slice(0,1) : [];
-        if (!photos.length && !videos.length) { showToast('No media found'); return; }
-        photos.forEach((url,i) => chrome.downloads.download({ url, filename: 'car-photo-'+(i+1)+'.jpg' }));
-        videos.forEach(url => {
-            if (url.includes('youtube')||url.includes('youtu.be')||url.includes('vimeo')) { chrome.tabs.create({url}); }
-            else { const ext = url.match(/\.(mp4|mov|webm)/i)?.[1]||'mp4'; chrome.downloads.download({url, filename:'car-video.'+ext}); }
+        if (!photos.length) { showToast('No photos found'); return; }
+        const referer = d.url || '';
+        const headers = referer ? [
+            { name: 'Referer', value: referer },
+            { name: 'User-Agent', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+        ] : undefined;
+        photos.forEach((url, i) => {
+            const raw = url.split('?')[0];
+            const ext = raw.split('.').pop().slice(0,4) || 'jpg';
+            const opts = { url, filename: 'DealerCopier/car-photo-'+(i+1)+'.'+ext, saveAs: false, conflictAction: 'overwrite' };
+            if (headers) opts.headers = headers;
+            chrome.downloads.download(opts);
         });
-        showToast('Downloading '+(photos.length+videos.length)+' file(s)…');
+        showToast('Saving ' + photos.length + ' photos…');
     });
     document.getElementById('btnMarketplace').addEventListener('click', () => {
         const listing = {
