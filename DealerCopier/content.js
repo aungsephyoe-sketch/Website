@@ -21,12 +21,10 @@ function extractListing() {
                     data.trim   = data.trim   || (item.vehicleConfiguration || '');
                     data.color  = data.color  || (item.color || '');
                     data.interiorColor = data.interiorColor || (item.vehicleInteriorColor || item.vehicleInteriorType || '');
-                    // Only trust explicit schema.org transmission type URLs, not ambiguous strings
                     if (!data.transmission && item.vehicleTransmission) {
                         const tx = String(item.vehicleTransmission).toLowerCase();
                         if (tx.includes('manualtransmission') || tx === 'manual') data.transmission = 'Manual';
                         else if (tx.includes('automatictransmission') || /^auto/.test(tx) || /\bcvt\b|\bdct\b/.test(tx)) data.transmission = 'Automatic';
-                        // Ignore: "1-speed direct drive", numeric-only speeds, etc.
                     }
                     data.vin    = data.vin    || (item.vehicleIdentificationNumber || item.vin || '');
                     data.mileage = data.mileage || String(item.mileageFromOdometer?.value || item.mileageFromOdometer || '');
@@ -172,7 +170,7 @@ function extractListing() {
     // Body style
     data.bodyStyle = data.bodyStyle || findLabelValue(/^body\s*style$/i) || findLabelValue(/^body\s*type$/i) || '';
 
-    // Transmission — normalize to 'Manual' or 'Automatic' at every step
+    // Transmission
     if (!data.transmission) {
         const raw = findLabelValue(/^transmission$/i);
         if (raw) {
@@ -274,27 +272,23 @@ function extractListing() {
     }
 
     // ── Strategy 7: Collect gallery images (handle lazy loading) ──
-    // Force lazy-loaded images to reveal their src from data attributes
     document.querySelectorAll('img[data-src], img[data-lazy], img[data-lazy-src], img[data-original], img[data-url]').forEach(img => {
         const lazySrc = img.dataset.src || img.dataset.lazy || img.dataset.lazySrc || img.dataset.original || img.dataset.url;
         if (lazySrc && lazySrc.startsWith('http')) {
-            const u = lazySrc.split('?')[0];
-            if (!u.includes('logo') && !u.includes('icon') && !data.images.includes(lazySrc)) {
+            if (!lazySrc.includes('logo') && !lazySrc.includes('icon') && !data.images.includes(lazySrc)) {
                 data.images.push(lazySrc);
             }
         }
     });
-    // Also scan noscript tags which often hold the real img src
     document.querySelectorAll('noscript').forEach(ns => {
-        const m = ns.textContent.match(/src=["'](https?:[^"']+)["\']/g) || [];
-        m.forEach(attr => {
+        const matches = ns.textContent.match(/src=["'](https?:[^"']+)["']/g) || [];
+        matches.forEach(attr => {
             const url = attr.replace(/src=["']/,'').replace(/["']/,'');
             if (url && !url.includes('logo') && !url.includes('icon') && !data.images.includes(url)) {
                 data.images.push(url);
             }
         });
     });
-    // Broad DOM scan for any img with a vehicle-looking src
     document.querySelectorAll('img').forEach(img => {
         const candidates = [
             img.src, img.dataset.src, img.dataset.lazySrc, img.dataset.lazy,
@@ -337,7 +331,7 @@ function extractListing() {
     document.querySelectorAll('source[src*=".mp4"], source[src*=".mov"], source[src*=".webm"]').forEach(s => {
         if (s.src && !data.videos.includes(s.src)) data.videos.push(s.src);
     });
-    document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"]').forEach(b => {
+    document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"]').forEach(f => {
         if (f.src && !data.videos.includes(f.src)) data.videos.push(f.src);
     });
 
@@ -346,24 +340,20 @@ function extractListing() {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'GET_LISTING') {
-        // Trigger lazy loads by briefly scrolling, then extract
-        const scrollAndExtract = () => {
-            const h = document.body.scrollHeight;
-            let pos = 0;
-            const step = Math.max(300, h / 8);
-            const doScroll = () => {
-                pos += step;
-                window.scrollTo(0, pos);
-                if (pos < h) {
-                    setTimeout(doScroll, 80);
-                } else {
-                    window.scrollTo(0, 0);
-                    setTimeout(() => sendResponse(extractListing()), 300);
-                }
-            };
-            doScroll();
+        const h = document.body.scrollHeight;
+        let pos = 0;
+        const step = Math.max(300, h / 8);
+        const doScroll = () => {
+            pos += step;
+            window.scrollTo(0, pos);
+            if (pos < h) {
+                setTimeout(doScroll, 80);
+            } else {
+                window.scrollTo(0, 0);
+                setTimeout(() => sendResponse(extractListing()), 300);
+            }
         };
-        scrollAndExtract();
-        return true; // keep channel open for async response
+        doScroll();
+        return true;
     }
 });
