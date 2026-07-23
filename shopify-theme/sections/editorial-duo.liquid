@@ -1,0 +1,50 @@
+<section class="editorial-duo" data-animate>
+    {% for block in section.blocks %}
+        <div class="duo-item" {{ block.shopify_attributes }}>
+            <div class="duo-image">
+                {% if block.settings.image %}
+                    <img src="{{ block.settings.image | image_url: width: 1200 }}" alt="{{ block.settings.image.alt | default: block.settings.title }}" width="{{ block.settings.image.width }}" height="{{ block.settings.image.height }}" loading="lazy">
+                {% elsif block.settings.fallback_image != blank %}
+                    <img src="{{ block.settings.fallback_image | asset_url }}" alt="{{ block.settings.title }}" loading="lazy">
+                {% endif %}
+            </div>
+            <div class="duo-text">
+                <span class="duo-category">{{ block.settings.category }}</span>
+                <h3 class="duo-title">{{ block.settings.title }}</h3>
+                {% if block.settings.link_text != blank %}
+                    <a href="{{ block.settings.link_url | default: '#' }}" class="duo-link">{{ block.settings.link_text }}</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</section>
+
+{% schema %}
+{
+    "name": "Editorial duo",
+    "blocks": [
+        {
+            "type": "duo_item",
+            "name": "Item",
+            "settings": [
+                { "type": "image_picker", "id": "image", "label": "Image" },
+                { "type": "text", "id": "fallback_image", "label": "Fallback theme asset filename", "info": "Used only when no image above is picked." },
+                { "type": "text", "id": "category", "label": "Category", "default": "Compression" },
+                { "type": "text", "id": "title", "label": "Title", "default": "Phalanx Tee" },
+                { "type": "text", "id": "link_text", "label": "Link text", "default": "Shop Now" },
+                { "type": "url", "id": "link_url", "label": "Link" }
+            ]
+        }
+    ],
+    "max_blocks": 2,
+    "default": {
+        "blocks": [
+            { "type": "duo_item", "settings": { "category": "Compression", "title": "Phalanx Tee", "link_text": "Shop Now", "fallback_image": "product-compression-front.jpg" } },
+            { "type": "duo_item", "settings": { "category": "Performance", "title": "Protected by God", "link_text": "Shop Now", "fallback_image": "product-protected-front.png" } }
+        ]
+    },
+    "presets": [
+        { "name": "Editorial duo" }
+    ]
+}
+{% endschema %}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html class="no-js" lang="{{ request.locale.iso_code }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        {{ page_title }}{% if current_tags %} &ndash; tagged "{{ current_tags | join: ', ' }}"{% endif %}{% if current_page != 1 %} &ndash; Page {{ current_page }}{% endif %}{% unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless %}
+    </title>
+
+    {% if page_description %}
+        <meta name="description" content="{{ page_description | escape }}">
+    {% endif %}
+
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {% if settings.favicon %}
+        <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+    {% endif %}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+
+    {{ 'styles.css' | asset_url | stylesheet_tag }}
+
+    <style>
+        :root {
+            --black: {{ settings.color_black }};
+            --white: {{ settings.color_white }};
+            --off-white: {{ settings.color_off_white }};
+            --cream: {{ settings.color_cream }};
+            --gray: {{ settings.color_gray }};
+            --brown: {{ settings.color_brown }};
+            --gold: {{ settings.color_gold }};
+        }
+    </style>
+
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": {{ shop.name | json }},
+            "url": {{ shop.url | json }}
+            {%- capture social_json -%}
+                {%- if settings.social_instagram_link != blank -%}{{ settings.social_instagram_link | json }},{%- endif -%}
+                {%- if settings.social_tiktok_link != blank -%}{{ settings.social_tiktok_link | json }},{%- endif -%}
+                {%- if settings.social_youtube_link != blank -%}{{ settings.social_youtube_link | json }},{%- endif -%}
+                {%- if settings.social_twitter_link != blank -%}{{ settings.social_twitter_link | json }},{%- endif -%}
+            {%- endcapture -%}
+            {%- assign social_json = social_json | strip_newlines | strip -%}
+            {%- if social_json != blank -%}
+                {%- assign social_json = social_json | remove_last: ',' -%}
+                ,"sameAs": [{{ social_json }}]
+            {%- endif -%}
+        }
+    </script>
+
+    <script>
+        window.themeVars = {
+            moneyFormat: {{ shop.money_format | json }},
+            routes: {
+                cartUrl: '{{ request.path_prefix }}/cart',
+                cartAddUrl: '{{ request.path_prefix }}/cart/add.js',
+                cartChangeUrl: '{{ request.path_prefix }}/cart/change.js',
+                cartGetUrl: '{{ request.path_prefix }}/cart.js',
+                rootUrl: {{ routes.root_url | json }}
+            }
+        };
+    </script>
+    <script src="{{ 'cart.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'global.js' | asset_url }}" defer="defer"></script>
+
+    {{ content_for_header }}
+</head>
+<body class="template-{{ template.name | handle | default: 'index' }}">
+
+    {% if template == 'index' %}
+        <!-- Loader -->
+        <div class="loader" id="loader">
+            <div class="loader-inner">
+                <div class="loader-brand">{{ shop.name }}</div>
+                <div class="loader-bar"><div class="loader-progress"></div></div>
+            </div>
+        </div>
+    {% endif %}
+
+    <a class="skip-to-content-link visually-hidden" href="#MainContent">Skip to content</a>
+
+    {% section 'header' %}
+
+    <main id="MainContent" role="main">
+        {{ content_for_layout }}
+    </main>
+
+    {% section 'footer' %}
+
+    {% render 'quick-view-modal' %}
+
+</body>
+</html>

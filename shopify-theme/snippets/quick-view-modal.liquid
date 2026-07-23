@@ -1,0 +1,62 @@
+{% comment %}
+  Shared quick-view modal, populated client-side (assets/global.js) via the
+  Product JS API (/products/{handle}.js) when a product card is clicked.
+{% endcomment %}
+<div class="modal-backdrop" id="modalBackdrop"></div>
+<div class="product-modal" id="productModal" role="dialog" aria-modal="true" aria-label="Product details">
+    <button class="modal-close" id="modalClose" type="button" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-inner">
+        <!-- Left: Image Gallery -->
+        <div class="modal-gallery">
+            <div class="modal-main-image" id="modalMainImageWrap">
+                <img id="modalMainImg" src="" alt="">
+                <button class="modal-slide-prev" id="modalSlidePrev" type="button" aria-label="Previous image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button class="modal-slide-next" id="modalSlideNext" type="button" aria-label="Next image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+            <div class="modal-thumbs" id="modalThumbs"></div>
+        </div>
+        <!-- Right: Product Details -->
+        <div class="modal-details">
+            <span class="modal-eyebrow">{{ shop.name }}</span>
+            <h2 class="modal-name" id="modalName"></h2>
+            <div class="modal-price-row">
+                <span class="modal-price" id="modalPrice"></span>
+                <span class="modal-color" id="modalColor"></span>
+            </div>
+            <div class="modal-divider"></div>
+            <p class="modal-desc" id="modalDesc"></p>
+            <div class="modal-divider"></div>
+
+            <!-- Variant option selectors (Size, etc.) -->
+            <div id="modalOptions"></div>
+
+            <!-- Add to Cart -->
+            <button class="modal-cart-btn" id="modalCartBtn" type="button" disabled>
+                <span class="cart-btn-text">Add to Cart</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </button>
+            <button class="modal-wishlist-btn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Add to Wishlist
+            </button>
+
+            <div class="modal-divider"></div>
+
+            <!-- Product Details -->
+            <div class="modal-features" id="modalFeatures"></div>
+
+            <div class="modal-shipping">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                {{ settings.shipping_note | default: 'Complimentary shipping on all orders' }}
+            </div>
+
+            <a href="#" class="modal-view-full" id="modalViewFull" style="display:none">View full details</a>
+        </div>
+    </div>
+</div>

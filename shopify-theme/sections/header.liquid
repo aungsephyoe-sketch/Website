@@ -1,0 +1,99 @@
+{% if section.settings.show_announcement %}
+<div class="announcement-bar">
+    <p>
+        {{ section.settings.announcement_text }}
+        {% if section.settings.announcement_link != blank %}
+            <a href="{{ section.settings.announcement_link }}">{{ section.settings.announcement_link_text }}</a>
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+
+<nav class="nav" id="nav">
+    <div class="nav-inner">
+        <div class="nav-left">
+            <button class="nav-menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="nav-links">
+                {% for link in section.settings.main_menu.links %}
+                    <a href="{{ link.url }}" class="nav-link">{{ link.title }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <a href="{{ routes.root_url }}" class="nav-logo">
+            {% if settings.logo %}
+                <img src="{{ settings.logo | image_url: width: 300 }}" alt="{{ shop.name }}" width="150" style="width:auto;height:32px;">
+            {% else %}
+                <span class="nav-logo-text">{{ shop.name }}</span>
+            {% endif %}
+        </a>
+
+        <div class="nav-right">
+            <a href="{{ routes.search_url }}" class="nav-icon" aria-label="Search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </a>
+            <a href="{% if customer %}{{ routes.account_url }}{% else %}{{ routes.account_login_url }}{% endif %}" class="nav-icon" aria-label="Account">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </a>
+            <a href="{{ routes.cart_url }}" class="nav-icon nav-cart" aria-label="Cart" style="position:relative">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <span class="cart-count" id="cartCount" data-cart-count style="display:{% if cart.item_count > 0 %}flex{% else %}none{% endif %}">{{ cart.item_count }}</span>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu-inner">
+        {% for link in section.settings.main_menu.links %}
+            <a href="{{ link.url }}" class="mobile-link">{{ link.title }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+{% schema %}
+{
+    "name": "Header",
+    "settings": [
+        {
+            "type": "link_list",
+            "id": "main_menu",
+            "label": "Menu",
+            "default": "main-menu"
+        },
+        {
+            "type": "header",
+            "content": "Announcement bar"
+        },
+        {
+            "type": "checkbox",
+            "id": "show_announcement",
+            "label": "Show announcement bar",
+            "default": true
+        },
+        {
+            "type": "text",
+            "id": "announcement_text",
+            "label": "Announcement text",
+            "default": "Complimentary Shipping on All Orders —"
+        },
+        {
+            "type": "text",
+            "id": "announcement_link_text",
+            "label": "Announcement link text",
+            "default": "Shop Now"
+        },
+        {
+            "type": "url",
+            "id": "announcement_link",
+            "label": "Announcement link",
+            "default": "/collections/all"
+        }
+    ]
+}
+{% endschema %}

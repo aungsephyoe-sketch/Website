@@ -1,0 +1,50 @@
+{% comment %}
+  Renders a product grid card with an image slider + quick-view trigger.
+  Accepts: product
+{% endcomment %}
+{% liquid
+  assign color_option = null
+  for option in product.options_with_values
+    if option.name == 'Color'
+      assign color_option = option
+    endif
+  endfor
+%}
+<div class="product-item" data-product data-product-handle="{{ product.handle }}" data-tags="{{ product.tags | join: ',' }}" data-details="{{ product.metafields.custom.details | json | escape }}">
+    <div class="product-image product-slider">
+        {% for image in product.images %}
+            <img
+                class="slide{% if forloop.first %} active{% endif %}"
+                src="{{ image | image_url: width: 800 }}"
+                alt="{{ image.alt | default: product.title }}"
+                width="{{ image.width }}"
+                height="{{ image.height }}"
+                loading="lazy">
+        {% else %}
+            <img class="slide active" src="{{ 'product-front.svg' | asset_url }}" alt="{{ product.title }}" loading="lazy">
+        {% endfor %}
+        {% if product.images.size > 1 %}
+            <button type="button" class="slide-prev" aria-label="Previous image">&#8249;</button>
+            <button type="button" class="slide-next" aria-label="Next image">&#8250;</button>
+            <div class="slide-dots">
+                {% for image in product.images %}
+                    <span class="slide-dot{% if forloop.first %} active{% endif %}"></span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="product-quickview">View Details</div>
+    </div>
+    <div class="product-info">
+        <h3><a href="{{ product.url }}">{{ product.title }}</a></h3>
+        {% if color_option %}
+            <span class="product-color">{{ color_option.values.first }}</span>
+        {% endif %}
+        <span class="product-price">
+            {%- if product.price_varies -%}
+                From {{ product.price_min | money }}
+            {%- else -%}
+                {{ product.price | money }}
+            {%- endif -%}
+        </span>
+    </div>
+</div>

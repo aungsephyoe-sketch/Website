@@ -1,0 +1,109 @@
+{% liquid
+  assign color_option = null
+  for option in product.options_with_values
+    if option.name == 'Color'
+      assign color_option = option
+    endif
+  endfor
+%}
+<div class="container">
+    <div class="product-main" data-product-main data-product-handle="{{ product.handle }}">
+        <div class="modal-gallery product-main-gallery">
+            <div class="modal-main-image" id="pageMainImageWrap">
+                {% if product.featured_media %}
+                    <img id="pageMainImg" src="{{ product.featured_image | image_url: width: 1200 }}" alt="{{ product.featured_image.alt | default: product.title }}" width="{{ product.featured_image.width }}" height="{{ product.featured_image.height }}">
+                {% else %}
+                    <img id="pageMainImg" src="{{ 'product-front.svg' | asset_url }}" alt="{{ product.title }}">
+                {% endif %}
+                {% if product.images.size > 1 %}
+                    <button class="modal-slide-prev" id="pageSlidePrev" type="button" aria-label="Previous image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button class="modal-slide-next" id="pageSlideNext" type="button" aria-label="Next image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                {% endif %}
+            </div>
+            {% if product.images.size > 1 %}
+                <div class="modal-thumbs" id="pageThumbs">
+                    {% for image in product.images %}
+                        <div class="modal-thumb{% if forloop.first %} active{% endif %}" data-index="{{ forloop.index0 }}" data-full-src="{{ image | image_url: width: 1200 }}">
+                            <img src="{{ image | image_url: width: 200 }}" alt="{{ image.alt | default: product.title }} {{ forloop.index }}" loading="lazy">
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="modal-details product-main-details">
+            <span class="modal-eyebrow">{{ shop.name }}</span>
+            <h1 class="modal-name">{{ product.title }}</h1>
+            <div class="modal-price-row">
+                <span class="modal-price" id="pagePrice">{{ product.selected_or_first_available_variant.price | money }}</span>
+                {% if color_option %}<span class="modal-color">{{ color_option.values.first }}</span>{% endif %}
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-desc">{{ product.description }}</div>
+            <div class="modal-divider"></div>
+
+            {% form 'product', product, id: 'ProductForm', data-product-form: '' %}
+                <div class="product-native-select" data-product-select-wrapper>
+                    <label class="modal-label" for="ProductSelect">Options</label>
+                    <select name="id" id="ProductSelect">
+                        {% for variant in product.variants %}
+                            <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected="selected"{% endif %} {% unless variant.available %}disabled="disabled"{% endunless %}>
+                                {{ variant.title }}{% unless variant.available %} — Sold Out{% endunless %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="pageOptions" data-option-picker></div>
+
+                <button type="submit" class="modal-cart-btn" id="pageCartBtn" name="add" {% unless product.selected_or_first_available_variant.available %}disabled{% endunless %}>
+                    <span class="cart-btn-text">{% if product.available %}Add to Cart{% else %}Sold Out{% endif %}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </button>
+            {% endform %}
+
+            {% if product.metafields.custom.details != blank %}
+                <div class="modal-divider"></div>
+                <div class="modal-features">
+                    {% for line in product.metafields.custom.details %}
+                        <div class="modal-feature">{{ line }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="modal-shipping">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                {{ settings.shipping_note | default: 'Complimentary shipping on all orders' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": {{ product.title | json }},
+    "image": [{% for image in product.images %}{{ image | image_url: width: 1200 | prepend: "https:" | json }}{% unless forloop.last %},{% endunless %}{% endfor %}],
+    "description": {{ product.description | strip_html | json }},
+    "sku": {{ product.selected_or_first_available_variant.sku | json }},
+    "offers": {
+        "@type": "Offer",
+        "url": {{ shop.url | append: product.url | json }},
+        "priceCurrency": {{ cart.currency.iso_code | json }},
+        "price": {{ product.selected_or_first_available_variant.price | divided_by: 100.0 | json }},
+        "availability": "{% if product.selected_or_first_available_variant.available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}"
+    }
+}
+</script>
+
+{% schema %}
+{
+    "name": "Product information",
+    "settings": []
+}
+{% endschema %}

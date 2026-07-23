@@ -1,0 +1,43 @@
+{
+    "general": {
+        "search": {
+            "placeholder": "Search products…",
+            "submit": "Search",
+            "no_results": "No results found.",
+            "results_for": "Search results for \"{{ terms }}\""
+        },
+        "404": {
+            "title": "Page Not Found",
+            "text": "The page you're looking for doesn't exist or has been moved.",
+            "link": "Return Home"
+        }
+    },
+    "cart": {
+        "title": "Your Cart",
+        "empty": "Your cart is empty.",
+        "continue_shopping": "Continue Shopping",
+        "checkout": "Proceed to Checkout",
+        "subtotal": "Subtotal",
+        "shipping": "Shipping",
+        "shipping_at_checkout": "Calculated at checkout",
+        "total": "Total",
+        "remove": "Remove"
+    },
+    "products": {
+        "product": {
+            "add_to_cart": "Add to Cart",
+            "sold_out": "Sold Out",
+            "unavailable": "Unavailable",
+            "add_to_wishlist": "Add to Wishlist",
+            "view_details": "View Details",
+            "view_full_details": "View full details",
+            "size_guide": "Size Guide"
+        }
+    },
+    "newsletter": {
+        "email_placeholder": "Email address",
+        "subscribe": "Subscribe",
+        "success": "Thank you for subscribing.",
+        "error": "Please enter a valid email address."
+    }
+}

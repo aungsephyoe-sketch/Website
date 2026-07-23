@@ -1,0 +1,37 @@
+<section class="campaign-banner" data-animate>
+    <div class="campaign-image">
+        {% if section.settings.image %}
+            <img src="{{ section.settings.image | image_url: width: 2000 }}" alt="{{ section.settings.image.alt | default: section.settings.heading | strip_html }}" width="{{ section.settings.image.width }}" height="{{ section.settings.image.height }}" loading="lazy">
+        {% else %}
+            <img src="{{ 'hero-motorcycle.jpeg' | asset_url }}" alt="{{ section.settings.heading | strip_html }}" loading="lazy">
+        {% endif %}
+    </div>
+    <div class="campaign-overlay"></div>
+    <div class="campaign-content">
+        <span class="campaign-eyebrow">{{ section.settings.eyebrow }}</span>
+        <h2 class="campaign-title">{{ section.settings.heading }}</h2>
+        {% if section.settings.subtitle != blank %}
+            <p class="campaign-subtitle">{{ section.settings.subtitle }}</p>
+        {% endif %}
+        {% if section.settings.button_label != blank %}
+            <a href="{{ section.settings.button_link | default: '#collection' }}" class="campaign-cta">{{ section.settings.button_label }}</a>
+        {% endif %}
+    </div>
+</section>
+
+{% schema %}
+{
+    "name": "Campaign banner",
+    "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Beyond the Gym" },
+        { "type": "text", "id": "heading", "label": "Heading", "info": "Simple HTML like <br> is allowed.", "default": "Worn by<br>Warriors" },
+        { "type": "textarea", "id": "subtitle", "label": "Subtitle", "default": "Performance apparel that moves with your life — from the iron to the open road." },
+        { "type": "text", "id": "button_label", "label": "Button label", "default": "Explore" },
+        { "type": "url", "id": "button_link", "label": "Button link" }
+    ],
+    "presets": [
+        { "name": "Campaign banner" }
+    ]
+}
+{% endschema %}

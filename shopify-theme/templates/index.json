@@ -1,0 +1,112 @@
+{
+    "sections": {
+        "hero": {
+            "type": "hero",
+            "settings": {
+                "eyebrow": "Summer 2026",
+                "heading": "The Pantheon<br>Collection",
+                "button_label": "Discover",
+                "button_link": "#collection"
+            }
+        },
+        "editorial-duo": {
+            "type": "editorial-duo",
+            "blocks": {
+                "item-1": {
+                    "type": "duo_item",
+                    "settings": {
+                        "category": "Compression",
+                        "title": "Phalanx Tee",
+                        "link_text": "Shop Now",
+                        "link_url": "#collection",
+                        "fallback_image": "product-compression-front.jpg"
+                    }
+                },
+                "item-2": {
+                    "type": "duo_item",
+                    "settings": {
+                        "category": "Performance",
+                        "title": "Protected by God",
+                        "link_text": "Shop Now",
+                        "link_url": "#collection",
+                        "fallback_image": "product-protected-front.png"
+                    }
+                }
+            },
+            "block_order": ["item-1", "item-2"]
+        },
+        "campaign-banner": {
+            "type": "campaign-banner",
+            "settings": {
+                "eyebrow": "Beyond the Gym",
+                "heading": "Worn by<br>Warriors",
+                "subtitle": "Performance apparel that moves with your life — from the iron to the open road.",
+                "button_label": "Explore",
+                "button_link": "#collection"
+            }
+        },
+        "featured-collection": {
+            "type": "featured-collection",
+            "settings": {
+                "heading": "The Collection",
+                "products_to_show": 8
+            },
+            "blocks": {
+                "filter-1": { "type": "filter", "settings": { "label": "All", "tag": "" } },
+                "filter-2": { "type": "filter", "settings": { "label": "Compression", "tag": "Compression" } },
+                "filter-3": { "type": "filter", "settings": { "label": "Oversized", "tag": "Oversized" } },
+                "filter-4": { "type": "filter", "settings": { "label": "Long Sleeve", "tag": "Long Sleeve" } }
+            },
+            "block_order": ["filter-1", "filter-2", "filter-3", "filter-4"]
+        },
+        "editorial-image-text": {
+            "type": "editorial-image-text",
+            "settings": {
+                "eyebrow": "The Community",
+                "heading": "Built for<br>the <em>Few</em>",
+                "text": "Ares Pantheon is not mass-produced. Every piece is a statement — a commitment to the relentless pursuit of the best version of yourself. Worn by athletes, creators, and warriors who refuse to settle.",
+                "link_text": "Discover Our Story",
+                "link_url": "#"
+            }
+        },
+        "craft-features": {
+            "type": "craft-features",
+            "settings": {
+                "heading": "The Craft"
+            },
+            "blocks": {
+                "feature-1": { "type": "feature", "settings": { "number": "01", "title": "4-Way Stretch", "text": "Nylon-elastane blend for unrestricted movement" } },
+                "feature-2": { "type": "feature", "settings": { "number": "02", "title": "Compression Fit", "text": "Graduated zones mapped to muscle groups" } },
+                "feature-3": { "type": "feature", "settings": { "number": "03", "title": "Antimicrobial", "text": "Silver-ion threads eliminate odor-causing bacteria" } },
+                "feature-4": { "type": "feature", "settings": { "number": "04", "title": "Flatlock Seams", "text": "Zero-chafe construction for all-day comfort" } }
+            },
+            "block_order": ["feature-1", "feature-2", "feature-3", "feature-4"]
+        },
+        "world-banner": {
+            "type": "world-banner",
+            "settings": {
+                "eyebrow": "Enter",
+                "heading": "The World<br>of Ares",
+                "button_label": "Explore",
+                "button_link": "#"
+            }
+        },
+        "newsletter": {
+            "type": "newsletter",
+            "settings": {
+                "heading": "Stay Connected",
+                "text": "Be the first to know about new collections, exclusive drops, and the world of Ares Pantheon."
+            }
+        }
+    },
+    "order": [
+        "hero",
+        "editorial-duo",
+        "campaign-banner",
+        "featured-collection",
+        "editorial-image-text",
+        "craft-features",
+        "world-banner",
+        "newsletter"
+    ]
+}

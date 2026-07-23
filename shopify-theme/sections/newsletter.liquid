@@ -1,0 +1,33 @@
+<section class="newsletter-section" data-animate>
+    <div class="container">
+        <div class="newsletter-inner">
+            <div class="newsletter-text">
+                <h2>{{ section.settings.heading }}</h2>
+                <p>{{ section.settings.text }}</p>
+            </div>
+            {% form 'customer', id: 'newsletter-form', class: 'newsletter-form' %}
+                <input type="hidden" name="contact[tags]" value="newsletter">
+                {% if form.posted_successfully? %}
+                    <p class="form-status form-status--success">Thank you for subscribing.</p>
+                {% elsif form.errors %}
+                    <p class="form-status form-status--error">{{ form.errors.messages['form'] | default: 'Please enter a valid email address.' }}</p>
+                {% endif %}
+                <input type="email" name="contact[email]" placeholder="Email address" autocomplete="email" required>
+                <button type="submit">Subscribe</button>
+            {% endform %}
+        </div>
+    </div>
+</section>
+
+{% schema %}
+{
+    "name": "Newsletter",
+    "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Stay Connected" },
+        { "type": "textarea", "id": "text", "label": "Text", "default": "Be the first to know about new collections, exclusive drops, and the world of Ares Pantheon." }
+    ],
+    "presets": [
+        { "name": "Newsletter" }
+    ]
+}
+{% endschema %}

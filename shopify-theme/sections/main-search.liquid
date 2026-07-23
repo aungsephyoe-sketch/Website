@@ -1,0 +1,47 @@
+<section class="section">
+    <div class="container">
+        <div class="collection-header" data-animate>
+            <h1 class="collection-title">
+                {% if search.performed %}Search results for &ldquo;{{ search.terms }}&rdquo;{% else %}Search{% endif %}
+            </h1>
+        </div>
+
+        <form action="{{ routes.search_url }}" method="get" role="search" class="newsletter-form" style="max-width:480px;margin:0 0 48px;">
+            <input type="hidden" name="type" value="product">
+            <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search products…" aria-label="Search products">
+            <button type="submit">Search</button>
+        </form>
+
+        {% if search.performed %}
+            {% paginate search.results by 24 %}
+                {% if search.results_count > 0 %}
+                    <div class="product-grid" data-animate>
+                        {% for item in search.results %}
+                            {% if item.object_type == 'product' %}
+                                {% render 'product-card', product: item %}
+                            {% else %}
+                                <div class="product-item">
+                                    <div class="product-info">
+                                        <h3><a href="{{ item.url }}">{{ item.title }}</a></h3>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% if paginate.pages > 1 %}
+                        <div class="pagination">{{ paginate | default_pagination }}</div>
+                    {% endif %}
+                {% else %}
+                    <p>No results found.</p>
+                {% endif %}
+            {% endpaginate %}
+        {% endif %}
+    </div>
+</section>
+
+{% schema %}
+{
+    "name": "Search results",
+    "settings": []
+}
+{% endschema %}

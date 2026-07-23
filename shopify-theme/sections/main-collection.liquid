@@ -1,0 +1,39 @@
+<section class="section" id="collection">
+    <div class="container">
+        <div class="collection-header" data-animate>
+            <h1 class="collection-title">{{ collection.title }}</h1>
+            {% if collection.all_tags.size > 0 %}
+                <div class="collection-filters" data-product-filters>
+                    <button type="button" class="filter-btn active" data-filter-tag="">All</button>
+                    {% for tag in collection.all_tags limit: 6 %}
+                        <button type="button" class="filter-btn" data-filter-tag="{{ tag }}">{{ tag }}</button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if collection.description != blank %}
+            <div class="collection-description">{{ collection.description }}</div>
+        {% endif %}
+
+        {% paginate collection.products by 24 %}
+            <div class="product-grid" data-animate data-product-grid>
+                {% for product in collection.products %}
+                    {% render 'product-card', product: product %}
+                {% else %}
+                    <p>No products found in this collection yet.</p>
+                {% endfor %}
+            </div>
+            {% if paginate.pages > 1 %}
+                <div class="pagination">{{ paginate | default_pagination }}</div>
+            {% endif %}
+        {% endpaginate %}
+    </div>
+</section>
+
+{% schema %}
+{
+    "name": "Collection pages",
+    "settings": []
+}
+{% endschema %}

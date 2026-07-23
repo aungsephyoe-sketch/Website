@@ -1,0 +1,58 @@
+<footer class="footer" id="contact">
+    <div class="container">
+        <div class="footer-grid">
+            {% for block in section.blocks %}
+                <div class="footer-col" {{ block.shopify_attributes }}>
+                    <h4>{{ block.settings.title }}</h4>
+                    {% for link in block.settings.menu.links %}
+                        <a href="{{ link.url }}">{{ link.title }}</a>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="footer-bottom">
+            <span class="footer-logo-text">{{ shop.name }}</span>
+            <span class="footer-copy">&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. All rights reserved.</span>
+            <div class="footer-legal">
+                {% for policy in shop.policies %}
+                    {% if policy.url != blank %}
+                        <a href="{{ policy.url }}">{{ policy.title }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</footer>
+
+{% schema %}
+{
+    "name": "Footer",
+    "blocks": [
+        {
+            "type": "link_column",
+            "name": "Link column",
+            "settings": [
+                {
+                    "type": "text",
+                    "id": "title",
+                    "label": "Heading",
+                    "default": "Help"
+                },
+                {
+                    "type": "link_list",
+                    "id": "menu",
+                    "label": "Menu"
+                }
+            ]
+        }
+    ],
+    "default": {
+        "blocks": [
+            { "type": "link_column", "settings": { "title": "Help", "menu": "footer" } },
+            { "type": "link_column", "settings": { "title": "Collections" } },
+            { "type": "link_column", "settings": { "title": "The House" } },
+            { "type": "link_column", "settings": { "title": "Follow Us" } }
+        ]
+    }
+}
+{% endschema %}
