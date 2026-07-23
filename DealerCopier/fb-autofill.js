@@ -77,11 +77,11 @@
         return raw;
     }
 
-    function guessBodyStyle(model, trim) {
-        const m = ((model || '') + ' ' + (trim || '')).toLowerCase();
+    function guessBodyStyle(make, model, trim) {
+        const m = ((make || '') + ' ' + (model || '') + ' ' + (trim || '')).toLowerCase();
         if (/odyssey|sienna|pacifica|caravan|sedona|minivan|mini-van/.test(m)) return 'Minivan';
-        if (/silverado|f-150|f150|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|ram 1500|ram 2500|ram 3500|\bpickup\b|\btruck\b/.test(m)) return 'Truck';
-        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|encore|envoy|captiva|passport|hr-v|hrv|cx-30|cx-3|bravada|envision|kona|venue|palisade|telluride|sorento|sportage|seltos|soul|niro|juke|kicks|xterra|x-trail|bolt\b|tracker|\bsuv\b|crossover|4wd|awd/.test(m)) return 'SUV';
+        if (/silverado|f-150|f150|f-250|f250|f-350|f350|tundra|tacoma|colorado|canyon|frontier|ranger|ridgeline|titan|\bram\b|\bpickup\b|\btruck\b|crew cab|quad cab|regular cab|mega cab|1500|2500|3500/.test(m)) return 'Truck';
+        if (/escalade|tahoe|suburban|explorer|pilot|highlander|traverse|4runner|pathfinder|navigator|expedition|yukon|sequoia|armada|mdx|rdx|gx\b|lx\b|rx\b|rav4|cr-v|crv|tucson|santa fe|equinox|blazer|bronco|terrain|edge|trailblazer|enclave|acadia|atlas|tiguan|rogue|murano|qashqai|cx-5|cx-9|forester|outback|ascent|trax|encore|envoy|captiva|passport|hr-v|hrv|cx-30|cx-3|bravada|envision|kona|venue|palisade|telluride|sorento|sportage|seltos|soul|niro|juke|kicks|xterra|x-trail|wagoneer|grand cherokee|durango|explorer|\bsuv\b|crossover/.test(m)) return 'SUV';
         if (/mustang|camaro|challenger|corvette|charger|86|brz|miata|370z|400z|911|\bcoupe\b|2-door|2dr/.test(m)) return 'Coupe';
         if (/convert|cabriolet|roadster/.test(m)) return 'Convertible';
         if (/hatchback|hatch|golf|fit\b|yaris|versa note|accent hatch/.test(m)) return 'Hatchback';
@@ -370,8 +370,8 @@
 
         const extColor    = normalizeColor(d.color);
         const intColor    = normalizeColor(d.interiorColor) || 'Black';
-        const transmission = d.transmission || 'Automatic';
-        const bodyStyle   = d.bodyStyle || guessBodyStyle(d.model, d.trim);
+        const transmission = 'Automatic';
+        const bodyStyle   = guessBodyStyle(d.make, d.model, d.trim);
 
         console.log('[DM] Data:', JSON.stringify({
             year: d.year, make: d.make, model: d.model, trim: d.trim,
@@ -380,10 +380,7 @@
             photos: (d.images || []).length
         }));
 
-        // Upload photos + video first (file inputs are present before other fields are filled)
-        await uploadPhotos(d.images, d.photoPaths);
-        await uploadVideo(d.videos, d.videoPath);
-        await sleep(1000);
+        await sleep(500);
 
         status('Vehicle type...');
         await fillDropdown(
