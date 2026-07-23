@@ -2,7 +2,7 @@
 // Downloads images to disk via chrome.downloads, then injects them into
 // the FB file input using CDP DOM.setFileInputFiles (fires a trusted event).
 
-function downloadFile(url, filename) {
+function downloadFile(url, filename, referer) {
     return new Promise((resolve) => {
         let dlId = null;
         const timeout = setTimeout(() => resolve(null), 30000);
@@ -23,12 +23,16 @@ function downloadFile(url, filename) {
         };
 
         chrome.downloads.onChanged.addListener(onChanged);
-        chrome.downloads.download({
-            url,
-            filename,
-            saveAs: false,
-            conflictAction: 'overwrite'
-        }, (id) => {
+
+        const opts = { url, filename, saveAs: false, conflictAction: 'overwrite' };
+        if (referer) {
+            opts.headers = [
+                { name: 'Referer', value: referer },
+                { name: 'User-Agent', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+            ];
+        }
+
+        chrome.downloads.download(opts, (id) => {
             if (chrome.runtime.lastError || !id) {
                 chrome.downloads.onChanged.removeListener(onChanged);
                 clearTimeout(timeout);
@@ -159,13 +163,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             try {
                 const urls = (msg.urls || []).slice(0, 10);
                 const videoUrl = msg.videoUrl || null;
-                console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos, video:', !!videoUrl);
+                const referer = msg.referer || null;
+                console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos, referer:', referer);
 
                 const paths = (await Promise.all(
                     urls.map((url, i) => {
                         const raw = url.split('?')[0];
                         const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
-                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext, referer);
                     })
                 )).filter(Boolean);
 
@@ -173,7 +178,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 if (videoUrl) {
                     const raw = videoUrl.split('?')[0];
                     const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
-                    videoPath = await downloadFile(videoUrl, 'DealerCopier/car-video.' + ext);
+                    videoPath = await downloadFile(videoUrl, 'DealerCopier/car-video.' + ext, referer);
                 }
 
                 console.log('[DM BG] Downloaded', paths.length, 'photos, video:', videoPath);
@@ -189,7 +194,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'CDP_SET_FILES') {
         (async () => {
             try {
-                const tabId = msg.tabId;
+                // sender.tab.id is the FB tab making the request — no need to pass tabId
+                const tabId = sender && sender.tab && sender.tab.id;
+                if (!tabId) { sendResponse({ ok: false, error: 'no tab id' }); return; }
                 const filePaths = msg.paths || [];
                 const selectors = msg.selectors || ['input[type="file"][accept*="image"]', 'input[type="file"]'];
                 let ok = false;

@@ -117,7 +117,7 @@ function renderListing(d) {
         btn.disabled = true;
         btn.textContent = 'Downloading photos…';
 
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_PHOTOS', urls: photoUrls, videoUrl }, (resp) => {
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_PHOTOS', urls: photoUrls, videoUrl, referer: d.url || '' }, (resp) => {
             if (chrome.runtime.lastError || !resp || !resp.paths.length) {
                 btn.textContent = 'Download failed — try again';
                 btn.disabled = false;

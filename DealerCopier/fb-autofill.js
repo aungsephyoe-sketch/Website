@@ -292,23 +292,17 @@
     }
 
     async function uploadPhotos(images, photoPaths) {
-        // If pre-downloaded paths exist, use CDP directly (no re-download needed)
+        // If pre-downloaded paths exist, use CDP directly (background uses sender.tab.id)
         if (photoPaths && photoPaths.length) {
             status('Uploading ' + photoPaths.length + ' saved photos...');
             console.log('[DM] Using pre-downloaded paths:', photoPaths.length);
-            const tabId = await new Promise(r => chrome.tabs.getCurrent(t => r(t && t.id)));
-            if (tabId) {
-                const resp = await sendToBg({
-                    type: 'CDP_SET_FILES',
-                    tabId,
-                    paths: photoPaths,
-                    selectors: ['input[type="file"][accept*="image"]', 'input[type="file"]:not([accept*="video"])', 'input[type="file"]']
-                });
-                if (resp && resp.ok) { status('Photos uploaded (' + photoPaths.length + ')!'); }
-                else { console.warn('[DM] CDP set files failed, falling back to download'); await uploadPhotosByUrl(images); }
-            } else {
-                await uploadPhotosByUrl(images);
-            }
+            const resp = await sendToBg({
+                type: 'CDP_SET_FILES',
+                paths: photoPaths,
+                selectors: ['input[type="file"][accept*="image"]', 'input[type="file"]:not([accept*="video"])', 'input[type="file"]']
+            });
+            if (resp && resp.ok) { status('Photos uploaded (' + photoPaths.length + ')!'); }
+            else { console.warn('[DM] CDP set files failed:', resp && resp.error); status('Photo upload failed'); }
             await sleep(2000);
             return;
         }
@@ -336,19 +330,15 @@
         // Use pre-downloaded path if available
         if (videoPath) {
             status('Uploading saved video...');
-            const tabId = await new Promise(r => chrome.tabs.getCurrent(t => r(t && t.id)));
-            if (tabId) {
-                const resp = await sendToBg({
-                    type: 'CDP_SET_FILES',
-                    tabId,
-                    paths: [videoPath],
-                    selectors: ['input[type="file"][accept*="video"]', 'input[type="file"]']
-                });
-                if (resp && resp.ok) { status('Video uploaded!'); }
-                else { console.warn('[DM] CDP video failed'); }
-                await sleep(2000);
-                return;
-            }
+            const resp = await sendToBg({
+                type: 'CDP_SET_FILES',
+                paths: [videoPath],
+                selectors: ['input[type="file"][accept*="video"]', 'input[type="file"]']
+            });
+            if (resp && resp.ok) { status('Video uploaded!'); }
+            else { console.warn('[DM] CDP video failed'); }
+            await sleep(2000);
+            return;
         }
 
         if (!videos || !videos.length) return;
