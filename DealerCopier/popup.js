@@ -7,37 +7,38 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.innerText || tmp.textContent || '').trim();
+}
+
 function buildDescription(d) {
     const lines = [];
     const title = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
     const price = d.price ? '$' + Number((d.price||'').replace(/\D/g,'')||0).toLocaleString() : '';
     const miles = d.mileage ? Number((d.mileage||'').replace(/\D/g,'')||0).toLocaleString() + ' miles' : '';
 
-    // Headline
-    const headline = [title, price].filter(Boolean).join(' — ');
-    if (headline) lines.push(headline);
-    lines.push('');
-
-    // Key specs on one line
+    if (title) lines.push(title + (price ? ' — ' + price : ''));
     const specs = [miles, d.color, d.interiorColor ? d.interiorColor + ' interior' : ''].filter(Boolean);
     if (specs.length) lines.push(specs.join(' · '));
+    lines.push('');
 
-    // Dealer description — trimmed to essentials, no duplicated specs
+    // Strip HTML and pull out up to 5 meaningful feature lines
     if (d.description) {
-        const cleaned = d.description
-            .replace(/\r\n/g, '\n')
-            .split('\n')
+        const plain = stripHtml(d.description);
+        const features = plain
+            .split(/[\n·•\|]+/)
             .map(l => l.trim())
-            .filter(l => l.length > 10)
-            .slice(0, 6)
-            .join('\n');
-        if (cleaned) { lines.push(''); lines.push(cleaned); }
+            .filter(l => l.length > 4 && l.length < 80)
+            .filter(l => !/extended service|contract|carfax|autocheck|highlighted|clean carfax/i.test(l))
+            .slice(0, 5);
+        if (features.length) lines.push(features.join('\n'));
+        lines.push('');
     }
 
-    lines.push('');
-    lines.push('Clean title, no accidents. My name is Aung — direct line 469-881-3778 if you have any questions.');
+    lines.push('Clean title. My name is Aung — direct line 469-881-3778 if you have any questions.');
     if (d.vin) lines.push('VIN: ' + d.vin);
-    if (d.url) lines.push('Full listing: ' + d.url);
 
     return lines.join('\n');
 }
