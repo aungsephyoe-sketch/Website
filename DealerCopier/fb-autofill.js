@@ -380,7 +380,10 @@
             photos: (d.images || []).length
         }));
 
-        await sleep(500);
+        // Upload photos + video first (file inputs are present before other fields are filled)
+        await uploadPhotos(d.images, d.photoPaths);
+        await uploadVideo(d.videos, d.videoPath);
+        await sleep(1000);
 
         status('Vehicle type...');
         await fillDropdown(
@@ -454,8 +457,8 @@
         status('Transmission...');
         await fillDropdown(
             ['Transmission', 'transmission'],
-            transmission,
-            ['Auto', 'Automatic Transmission', 'Manual Transmission']
+            'Automatic',
+            ['Auto', 'Automatic Transmission']
         );
         await sleep(700);
 
