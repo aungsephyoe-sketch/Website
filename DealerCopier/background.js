@@ -154,5 +154,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 
+    if (msg.type === 'DOWNLOAD_PHOTOS') {
+        (async () => {
+            try {
+                const urls = (msg.urls || []).slice(0, 10);
+                const videoUrl = msg.videoUrl || null;
+                console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos, video:', !!videoUrl);
+
+                const paths = (await Promise.all(
+                    urls.map((url, i) => {
+                        const raw = url.split('?')[0];
+                        const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
+                    })
+                )).filter(Boolean);
+
+                let videoPath = null;
+                if (videoUrl) {
+                    const raw = videoUrl.split('?')[0];
+                    const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
+                    videoPath = await downloadFile(videoUrl, 'DealerCopier/car-video.' + ext);
+                }
+
+                console.log('[DM BG] Downloaded', paths.length, 'photos, video:', videoPath);
+                sendResponse({ paths, videoPath });
+            } catch (e) {
+                console.error('[DM BG] DOWNLOAD_PHOTOS error:', e.message);
+                sendResponse({ paths: [], videoPath: null });
+            }
+        })();
+        return true;
+    }
+
+    if (msg.type === 'CDP_SET_FILES') {
+        (async () => {
+            try {
+                const tabId = msg.tabId;
+                const filePaths = msg.paths || [];
+                const selectors = msg.selectors || ['input[type="file"][accept*="image"]', 'input[type="file"]'];
+                let ok = false;
+                for (const sel of selectors) {
+                    ok = await cdpSetFiles(tabId, sel, filePaths);
+                    if (ok) break;
+                    await new Promise(r => setTimeout(r, 500));
+                }
+                sendResponse({ ok });
+            } catch (e) {
+                console.error('[DM BG] CDP_SET_FILES error:', e.message);
+                sendResponse({ ok: false });
+            }
+        })();
+        return true;
+    }
+
     return false;
 });

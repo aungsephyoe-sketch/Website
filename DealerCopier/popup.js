@@ -75,6 +75,9 @@ function renderListing(d) {
         <div class="btn-row" style="margin-top:8px">
             <button class="btn btn-secondary" id="btnDownload">⬇ Media (${mediaLabel})</button>
             <button class="btn btn-primary" id="btnMarketplace" style="background:#42b72a">Auto-Fill Marketplace</button>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+            <button class="btn btn-primary" id="btnPhotoPost" style="background:#e05c00;width:100%">📸 Save 10 Photos + Post to Marketplace</button>
         </div>`;
 
     document.getElementById('btnRefresh').addEventListener('click', init);
@@ -102,6 +105,43 @@ function renderListing(d) {
         };
         chrome.storage.local.set({ dealerListing: listing }, () => {
             chrome.tabs.create({ url: 'https://www.facebook.com/marketplace/create/vehicle' });
+        });
+    });
+
+    document.getElementById('btnPhotoPost').addEventListener('click', () => {
+        const photoUrls = (d.images || []).slice(0, 10);
+        const videoUrl  = (d.videos || []).find(u => !/youtube|youtu\.be|vimeo/.test(u)) || null;
+        if (!photoUrls.length) { showToast('No photos found on this page'); return; }
+
+        const btn = document.getElementById('btnPhotoPost');
+        btn.disabled = true;
+        btn.textContent = 'Downloading photos…';
+
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_PHOTOS', urls: photoUrls, videoUrl }, (resp) => {
+            if (chrome.runtime.lastError || !resp || !resp.paths.length) {
+                btn.textContent = 'Download failed — try again';
+                btn.disabled = false;
+                showToast('Could not download photos');
+                return;
+            }
+
+            btn.textContent = 'Downloaded ' + resp.paths.length + ' photos — opening FB…';
+
+            const listing = {
+                year:val('f-year'), make:val('f-make'), model:val('f-model'), trim:val('f-trim'),
+                price:val('f-price'), mileage:val('f-mileage'), color:val('f-color'), vin:val('f-vin'),
+                description:document.getElementById('f-desc')?.value||'',
+                images:d.images||[], videos:d.videos||[], url:d.url,
+                photoPaths: resp.paths,
+                videoPath: resp.videoPath || null
+            };
+            chrome.storage.local.set({ dealerListing: listing }, () => {
+                chrome.tabs.create({ url: 'https://www.facebook.com/marketplace/create/vehicle' });
+                setTimeout(() => {
+                    btn.textContent = '📸 Save 10 Photos + Post to Marketplace';
+                    btn.disabled = false;
+                }, 3000);
+            });
         });
     });
     ['f-year','f-make','f-model','f-trim','f-price','f-mileage','f-color','f-vin'].forEach(id => {

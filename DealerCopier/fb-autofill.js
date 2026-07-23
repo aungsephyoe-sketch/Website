@@ -291,7 +291,31 @@
         });
     }
 
-    async function uploadPhotos(images) {
+    async function uploadPhotos(images, photoPaths) {
+        // If pre-downloaded paths exist, use CDP directly (no re-download needed)
+        if (photoPaths && photoPaths.length) {
+            status('Uploading ' + photoPaths.length + ' saved photos...');
+            console.log('[DM] Using pre-downloaded paths:', photoPaths.length);
+            const tabId = await new Promise(r => chrome.tabs.getCurrent(t => r(t && t.id)));
+            if (tabId) {
+                const resp = await sendToBg({
+                    type: 'CDP_SET_FILES',
+                    tabId,
+                    paths: photoPaths,
+                    selectors: ['input[type="file"][accept*="image"]', 'input[type="file"]:not([accept*="video"])', 'input[type="file"]']
+                });
+                if (resp && resp.ok) { status('Photos uploaded (' + photoPaths.length + ')!'); }
+                else { console.warn('[DM] CDP set files failed, falling back to download'); await uploadPhotosByUrl(images); }
+            } else {
+                await uploadPhotosByUrl(images);
+            }
+            await sleep(2000);
+            return;
+        }
+        await uploadPhotosByUrl(images);
+    }
+
+    async function uploadPhotosByUrl(images) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
         status('Downloading ' + urls.length + ' photos...');
@@ -308,7 +332,25 @@
         await sleep(2000);
     }
 
-    async function uploadVideo(videos) {
+    async function uploadVideo(videos, videoPath) {
+        // Use pre-downloaded path if available
+        if (videoPath) {
+            status('Uploading saved video...');
+            const tabId = await new Promise(r => chrome.tabs.getCurrent(t => r(t && t.id)));
+            if (tabId) {
+                const resp = await sendToBg({
+                    type: 'CDP_SET_FILES',
+                    tabId,
+                    paths: [videoPath],
+                    selectors: ['input[type="file"][accept*="video"]', 'input[type="file"]']
+                });
+                if (resp && resp.ok) { status('Video uploaded!'); }
+                else { console.warn('[DM] CDP video failed'); }
+                await sleep(2000);
+                return;
+            }
+        }
+
         if (!videos || !videos.length) return;
         const url = videos[0];
         if (/youtube|youtu\.be|vimeo/.test(url)) {
@@ -349,8 +391,8 @@
         }));
 
         // Upload photos + video first (file inputs are present before other fields are filled)
-        if (d.images && d.images.length) await uploadPhotos(d.images);
-        if (d.videos && d.videos.length) await uploadVideo(d.videos);
+        await uploadPhotos(d.images, d.photoPaths);
+        await uploadVideo(d.videos, d.videoPath);
         await sleep(1000);
 
         status('Vehicle type...');
