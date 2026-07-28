@@ -1,0 +1,41 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Search</h1>
+  </div>
+
+  <div class="search-form-wrap">
+    {%- form 'search', role: 'search' -%}
+      <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search products" aria-label="Search">
+      <button type="submit">Search</button>
+    {%- endform -%}
+  </div>
+
+  {%- if search.performed -%}
+    {%- if search.results_count > 0 -%}
+      <div class="product-grid" style="margin:48px 0 100px;">
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}
+            {%- render 'product-card', product: item -%}
+          {%- else -%}
+            <a href="{{ item.url }}" class="product-item">
+              <div class="product-info">
+                <h3>{{ item.title }}</h3>
+              </div>
+            </a>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <div class="cart-empty">
+        <p>No results found for &ldquo;{{ search.terms }}&rdquo;.</p>
+        <a href="{{ routes.root_url }}">Continue Shopping</a>
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Search page"
+}
+{% endschema %}

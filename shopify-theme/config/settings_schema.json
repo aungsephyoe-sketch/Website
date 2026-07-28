@@ -1,0 +1,38 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Ares Pantheon",
+    "theme_version": "1.0.0",
+    "theme_author": "Custom build",
+    "theme_documentation_url": "",
+    "theme_support_url": ""
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      { "type": "header", "content": "Brand colors" },
+      { "type": "color", "id": "color_black", "label": "Black", "default": "#000000" },
+      { "type": "color", "id": "color_white", "label": "White", "default": "#ffffff" },
+      { "type": "color", "id": "color_off_white", "label": "Off white", "default": "#f5f0eb" },
+      { "type": "color", "id": "color_cream", "label": "Cream", "default": "#ede6db" },
+      { "type": "color", "id": "color_brown", "label": "Accent brown", "default": "#6b5b45" },
+      { "type": "color", "id": "color_gold", "label": "Accent gold", "default": "#c4a265" }
+    ]
+  },
+  {
+    "name": "Favicon",
+    "settings": [
+      { "type": "image_picker", "id": "favicon", "label": "Favicon image", "info": "Displayed at 32x32px" }
+    ]
+  },
+  {
+    "name": "Social media",
+    "settings": [
+      { "type": "url", "id": "social_instagram_link", "label": "Instagram" },
+      { "type": "url", "id": "social_tiktok_link", "label": "TikTok" },
+      { "type": "url", "id": "social_youtube_link", "label": "YouTube" },
+      { "type": "url", "id": "social_twitter_link", "label": "X (Twitter)" },
+      { "type": "url", "id": "social_facebook_link", "label": "Facebook" }
+    ]
+  }
+]

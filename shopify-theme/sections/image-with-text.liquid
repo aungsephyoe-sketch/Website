@@ -1,0 +1,43 @@
+<section class="editorial-section" id="{{ section.settings.anchor_id | default: 'editorial' }}" data-animate>
+  <div class="editorial-layout">
+    <div class="editorial-image">
+      {%- if section.settings.image != blank -%}
+        <img src="{{ section.settings.image | image_url: width: 1600 }}" alt="{{ section.settings.image.alt | escape }}" loading="lazy">
+      {%- else -%}
+        <img src="{{ 'product-ares-womens-tee.jpeg' | asset_url }}" alt="" loading="lazy">
+      {%- endif -%}
+    </div>
+    <div class="editorial-content">
+      {%- if section.settings.eyebrow != blank -%}<span class="editorial-eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+      <h2 class="editorial-title">{{ section.settings.title }}</h2>
+      {%- if section.settings.text != blank -%}<p>{{ section.settings.text }}</p>{%- endif -%}
+      {%- if section.settings.link != blank and section.settings.link_text != blank -%}
+        <a href="{{ section.settings.link }}" class="editorial-link">{{ section.settings.link_text }}</a>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Image with text",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "editorial" },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "The Community" },
+    {
+      "type": "html",
+      "id": "title",
+      "label": "Heading",
+      "default": "Built for<br>the <em>Few</em>",
+      "info": "HTML allowed, e.g. <br> and <em>"
+    },
+    { "type": "textarea", "id": "text", "label": "Body text" },
+    { "type": "url", "id": "link", "label": "Link" },
+    { "type": "text", "id": "link_text", "label": "Link text", "default": "Discover Our Story" }
+  ],
+  "presets": [
+    { "name": "Image with text" }
+  ]
+}
+{% endschema %}

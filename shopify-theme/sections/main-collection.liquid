@@ -1,0 +1,46 @@
+{%- paginate collection.products by section.settings.products_per_page -%}
+<section class="section">
+  <div class="container">
+    <div class="collection-header" data-animate>
+      <h2 class="collection-title">{{ collection.title }}</h2>
+      {%- if collection.all_tags.size > 0 -%}
+        <div class="collection-filters">
+          <a href="{{ collection.url }}" class="filter-btn{% unless current_tags %} active{% endunless %}">All</a>
+          {%- for tag in collection.all_tags -%}
+            <a href="{{ collection.url }}/{{ tag | handle }}" class="filter-btn{% if current_tags contains tag %} active{% endif %}">{{ tag }}</a>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- if collection.description != blank -%}
+      <div class="collection-description">{{ collection.description }}</div>
+    {%- endif -%}
+
+    <div class="product-grid" data-animate>
+      {%- for product in collection.products -%}
+        {%- render 'product-card', product: product -%}
+      {%- else -%}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--gray)">
+          <p>No products found{% if current_tags %} for &ldquo;{{ current_tags | join: ', ' }}&rdquo;{% endif %}.</p>
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- if paginate.pages > 1 -%}
+      <div class="collection-pagination">
+        {{ paginate | default_pagination }}
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+{%- endpaginate -%}
+
+{% schema %}
+{
+  "name": "Collection page",
+  "settings": [
+    { "type": "range", "id": "products_per_page", "label": "Products per page", "min": 8, "max": 48, "step": 4, "default": 24 }
+  ]
+}
+{% endschema %}

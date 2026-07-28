@@ -1,0 +1,33 @@
+<div class="container">
+  <div class="page-header">
+    <span class="duo-category">{{ article.published_at | date: '%B %d, %Y' }}{% if article.author != blank %} &middot; {{ article.author }}{% endif %}</span>
+    <h1>{{ article.title }}</h1>
+  </div>
+  {%- if article.image -%}
+    <div class="editorial-image" style="margin-bottom:48px;">
+      <img src="{{ article.image | image_url: width: 1600 }}" alt="{{ article.title | escape }}">
+    </div>
+  {%- endif -%}
+  <div class="rich-text-page">
+    {{ article.content }}
+  </div>
+
+  {%- if blog.comments_enabled? -%}
+    <div class="rich-text-page" style="margin-top:60px;">
+      {{ article.comments_count }} comment{{ article.comments_count | pluralize: '', 's' }}
+      {% form 'new_comment', article %}
+        {{ form.errors | default_errors }}
+        <div class="form-group"><label>Name</label><input type="text" name="comment[author]" value="{{ form.author }}" required></div>
+        <div class="form-group"><label>Email</label><input type="email" name="comment[email]" value="{{ form.email }}" required></div>
+        <div class="form-group"><label>Message</label><textarea name="comment[body]" rows="5" required>{{ form.body }}</textarea></div>
+        <button type="submit" class="checkout-btn" style="width:auto;">Post Comment</button>
+      {% endform %}
+    </div>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Article page"
+}
+{% endschema %}

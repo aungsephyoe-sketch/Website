@@ -1,0 +1,63 @@
+<section class="section" id="{{ section.settings.anchor_id | default: 'collection' }}">
+  <div class="container">
+    <div class="collection-header" data-animate>
+      <h2 class="collection-title">{{ section.settings.title }}</h2>
+      {%- if section.blocks.size > 0 -%}
+      <div class="collection-filters">
+        <button type="button" class="filter-btn active">All</button>
+        {%- for block in section.blocks -%}
+          <button type="button" class="filter-btn" {{ block.shopify_attributes }}>{{ block.settings.label }}</button>
+        {%- endfor -%}
+      </div>
+      {%- endif -%}
+    </div>
+
+    {%- assign coll = collections[section.settings.collection] -%}
+    {%- if coll == blank -%}{%- assign coll = collections.all -%}{%- endif -%}
+
+    <div class="product-grid" data-animate>
+      {%- for product in coll.products limit: section.settings.products_to_show -%}
+        {%- render 'product-card', product: product -%}
+      {%- else -%}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--gray)">
+          {%- if request.design_mode -%}
+            <p>No products in this collection yet. Add products to &ldquo;{{ coll.title | default: 'All' }}&rdquo; in Shopify admin — they'll appear here automatically.</p>
+          {%- else -%}
+            <p>New arrivals coming soon.</p>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Featured collection",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID (for nav links)", "default": "collection" },
+    { "type": "text", "id": "title", "label": "Heading", "default": "The Collection" },
+    { "type": "collection", "id": "collection", "label": "Collection", "info": "Defaults to all products if left blank" },
+    { "type": "range", "id": "products_to_show", "label": "Products to show", "min": 2, "max": 24, "step": 1, "default": 8 }
+  ],
+  "blocks": [
+    {
+      "type": "filter",
+      "name": "Filter pill (decorative)",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Compression" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "filter", "settings": { "label": "Compression" } },
+      { "type": "filter", "settings": { "label": "Oversized" } },
+      { "type": "filter", "settings": { "label": "Long Sleeve" } }
+    ]
+  },
+  "presets": [
+    { "name": "Featured collection" }
+  ]
+}
+{% endschema %}

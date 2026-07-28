@@ -1,0 +1,49 @@
+{%- comment -%}
+  Renders a product grid card with the same hover image-slider UX as the
+  original site's .product-item / .product-slider markup.
+  Accepts: product
+{%- endcomment -%}
+
+<div class="product-item" data-product-card>
+  <a href="{{ product.url }}" class="product-image product-slider" aria-label="{{ product.title | escape }}">
+    {%- if product.images.size > 0 -%}
+      {%- for image in product.images -%}
+        <img
+          class="slide{% if forloop.first %} active{% endif %}"
+          src="{{ image | image_url: width: 800 }}"
+          width="{{ image.width }}"
+          height="{{ image.height }}"
+          alt="{{ image.alt | default: product.title | escape }}"
+          loading="lazy">
+      {%- endfor -%}
+    {%- else -%}
+      <img class="slide active" src="{{ 'placeholder.svg' | asset_url }}" alt="{{ product.title | escape }}" loading="lazy">
+    {%- endif -%}
+
+    {%- if product.images.size > 1 -%}
+      <button type="button" class="slide-prev" aria-label="Previous image">&#8249;</button>
+      <button type="button" class="slide-next" aria-label="Next image">&#8250;</button>
+      <div class="slide-dots">
+        {%- for image in product.images -%}
+          <span class="slide-dot{% if forloop.first %} active{% endif %}"></span>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    <div class="product-quickview">View Details</div>
+  </a>
+  <div class="product-info">
+    <h3><a href="{{ product.url }}">{{ product.title }}</a></h3>
+    {%- assign color_option = product.options_with_values | where: 'name', 'Color' | first -%}
+    {%- if color_option -%}
+      <span class="product-color">{{ color_option.values.first }}</span>
+    {%- endif -%}
+    <span class="product-price">
+      {%- if product.price_varies -%}
+        {{ product.price_min | money }} &ndash; {{ product.price_max | money }}
+      {%- else -%}
+        {{ product.price | money }}
+      {%- endif -%}
+    </span>
+  </div>
+</div>

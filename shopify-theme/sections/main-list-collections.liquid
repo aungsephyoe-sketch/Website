@@ -1,0 +1,32 @@
+<section class="section">
+  <div class="container">
+    <div class="collection-header" data-animate>
+      <h2 class="collection-title">{{ section.settings.title | default: 'Collections' }}</h2>
+    </div>
+    <div class="product-grid" data-animate>
+      {%- for collection in collections -%}
+        <a href="{{ collection.url }}" class="product-item">
+          <div class="product-image">
+            {%- if collection.featured_image -%}
+              <img src="{{ collection.featured_image | image_url: width: 800 }}" alt="{{ collection.title | escape }}" loading="lazy">
+            {%- else -%}
+              <img src="{{ 'placeholder.svg' | asset_url }}" alt="{{ collection.title | escape }}" loading="lazy">
+            {%- endif -%}
+          </div>
+          <div class="product-info">
+            <h3>{{ collection.title }}</h3>
+          </div>
+        </a>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "List of collections",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Heading", "default": "Collections" }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,93 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Summer 2026",
+        "title": "The Pantheon\nCollection",
+        "button_label": "Discover",
+        "button_link": "#collection"
+      }
+    },
+    "duo": {
+      "type": "image-duo",
+      "blocks": {
+        "item-1": {
+          "type": "item",
+          "settings": {
+            "category": "Compression",
+            "title": "Phalanx Tee",
+            "link_text": "Shop Now"
+          }
+        },
+        "item-2": {
+          "type": "item",
+          "settings": {
+            "category": "Performance",
+            "title": "Protected by God",
+            "link_text": "Shop Now"
+          }
+        }
+      },
+      "block_order": ["item-1", "item-2"]
+    },
+    "campaign": {
+      "type": "full-bleed-banner",
+      "settings": {
+        "style": "side",
+        "eyebrow": "Beyond the Gym",
+        "title": "Worn by\nWarriors",
+        "subtitle": "Performance apparel that moves with your life — from the iron to the open road.",
+        "button_label": "Explore",
+        "button_link": "#collection"
+      }
+    },
+    "collection": {
+      "type": "featured-collection",
+      "settings": {
+        "anchor_id": "collection",
+        "title": "The Collection",
+        "products_to_show": 8
+      },
+      "blocks": {
+        "filter-1": { "type": "filter", "settings": { "label": "Compression" } },
+        "filter-2": { "type": "filter", "settings": { "label": "Oversized" } },
+        "filter-3": { "type": "filter", "settings": { "label": "Long Sleeve" } }
+      },
+      "block_order": ["filter-1", "filter-2", "filter-3"]
+    },
+    "editorial": {
+      "type": "image-with-text",
+      "settings": {
+        "anchor_id": "editorial",
+        "eyebrow": "The Community",
+        "title": "Built for<br>the <em>Few</em>",
+        "text": "Ares Pantheon is not mass-produced. Every piece is a statement — a commitment to the relentless pursuit of the best version of yourself. Worn by athletes, creators, and warriors who refuse to settle.",
+        "link_text": "Discover Our Story"
+      }
+    },
+    "craft": {
+      "type": "craft-strip",
+      "settings": {
+        "anchor_id": "craft",
+        "title": "The Craft"
+      }
+    },
+    "world": {
+      "type": "full-bleed-banner",
+      "settings": {
+        "style": "centered",
+        "anchor_id": "world",
+        "eyebrow": "Enter",
+        "title": "The World\nof Ares",
+        "button_label": "Explore",
+        "button_link": "#"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {}
+    }
+  },
+  "order": ["hero", "duo", "campaign", "collection", "editorial", "craft", "world", "newsletter"]
+}

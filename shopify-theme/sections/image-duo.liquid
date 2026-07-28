@@ -1,0 +1,49 @@
+<section class="editorial-duo" data-animate>
+  {%- for block in section.blocks -%}
+    <div class="duo-item" {{ block.shopify_attributes }}>
+      <div class="duo-image">
+        {%- if block.settings.image != blank -%}
+          <img src="{{ block.settings.image | image_url: width: 1200 }}" alt="{{ block.settings.image.alt | escape }}" loading="lazy" width="{{ block.settings.image.width }}" height="{{ block.settings.image.height }}">
+        {%- else -%}
+          <img src="{{ 'placeholder.svg' | asset_url }}" alt="" loading="lazy">
+        {%- endif -%}
+      </div>
+      <div class="duo-text">
+        {%- if block.settings.category != blank -%}<span class="duo-category">{{ block.settings.category }}</span>{%- endif -%}
+        <h3 class="duo-title">{{ block.settings.title }}</h3>
+        {%- if block.settings.link != blank -%}
+          <a href="{{ block.settings.link }}" class="duo-link">{{ block.settings.link_text | default: 'Shop Now' }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endfor -%}
+</section>
+
+{% schema %}
+{
+  "name": "Editorial duo",
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "limit": 2,
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "category", "label": "Category label" },
+        { "type": "text", "id": "title", "label": "Title" },
+        { "type": "url", "id": "link", "label": "Link" },
+        { "type": "text", "id": "link_text", "label": "Link text", "default": "Shop Now" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "item", "settings": { "category": "Compression", "title": "Phalanx Tee" } },
+      { "type": "item", "settings": { "category": "Performance", "title": "Protected by God" } }
+    ]
+  },
+  "presets": [
+    { "name": "Editorial duo" }
+  ]
+}
+{% endschema %}

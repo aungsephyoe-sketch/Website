@@ -1,0 +1,108 @@
+<section class="product-page">
+  <div class="modal-inner">
+
+    <div class="modal-gallery">
+      <div class="modal-main-image" id="ProductMainImageWrap">
+        {%- if product.featured_media -%}
+          <img id="ProductMainImg" src="{{ product.featured_media | image_url: width: 1200 }}" alt="{{ product.featured_media.alt | default: product.title | escape }}">
+        {%- else -%}
+          <img id="ProductMainImg" src="{{ 'placeholder.svg' | asset_url }}" alt="{{ product.title | escape }}">
+        {%- endif -%}
+
+        {%- if product.images.size > 1 -%}
+          <button type="button" class="modal-slide-prev" id="ProductSlidePrev" aria-label="Previous image">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button type="button" class="modal-slide-next" id="ProductSlideNext" aria-label="Next image">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        {%- endif -%}
+      </div>
+
+      {%- if product.images.size > 1 -%}
+        <div class="modal-thumbs" id="ProductThumbs">
+          {%- for image in product.images -%}
+            <div class="modal-thumb{% if forloop.first %} active{% endif %}" data-index="{{ forloop.index0 }}" data-src="{{ image | image_url: width: 1200 }}" data-alt="{{ image.alt | default: product.title | escape }}">
+              <img src="{{ image | image_url: width: 200 }}" alt="{{ image.alt | default: product.title | escape }}" loading="lazy">
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    <div class="modal-details">
+      <span class="modal-eyebrow">{{ shop.name }}</span>
+      <h1 class="modal-name">{{ product.title }}</h1>
+      <div class="modal-price-row">
+        <span class="modal-price" id="ProductPrice">{{ product.selected_or_first_available_variant.price | money }}</span>
+        {%- assign color_option = product.options_with_values | where: 'name', 'Color' | first -%}
+        {%- if color_option -%}
+          <span class="modal-color">{{ color_option.values.first }}</span>
+        {%- endif -%}
+      </div>
+
+      {%- if product.description != blank -%}
+        <div class="modal-divider"></div>
+        <div class="modal-desc">{{ product.description }}</div>
+      {%- endif -%}
+
+      <div class="modal-divider"></div>
+
+      {%- form 'product', product, id: 'ProductForm' -%}
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}" id="ProductVariantId">
+
+        {%- for option in product.options_with_values -%}
+          {%- unless option.name == 'Color' and option.values.size == 1 -%}
+            <div class="modal-size-section">
+              <div class="modal-size-header">
+                <span class="modal-label">Select {{ option.name }}</span>
+                {%- if option.name == 'Size' and section.settings.size_guide_url != blank -%}
+                  <a href="{{ section.settings.size_guide_url }}" class="modal-size-guide">Size Guide</a>
+                {%- endif -%}
+              </div>
+              <div class="modal-sizes" data-option-index="{{ forloop.index0 }}">
+                {%- for value in option.values -%}
+                  <button type="button" class="size-btn" data-value="{{ value | escape }}">{{ value }}</button>
+                {%- endfor -%}
+              </div>
+            </div>
+          {%- endunless -%}
+        {%- endfor -%}
+
+        <button type="submit" class="modal-cart-btn" id="AddToCartBtn" {% unless product.selected_or_first_available_variant.available %}disabled{% endunless %}>
+          <span class="cart-btn-text">
+            {%- if product.selected_or_first_available_variant.available -%}Add to Cart{%- else -%}Sold Out{%- endif -%}
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </button>
+      {%- endform -%}
+
+      {%- if section.settings.show_wishlist_button -%}
+        <button type="button" class="modal-wishlist-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Add to Wishlist
+        </button>
+      {%- endif -%}
+
+      <div class="modal-shipping">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        {{ section.settings.shipping_note | default: 'Complimentary shipping on all orders' }}
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="ProductJSON-{{ product.id }}">
+    {{ product | json }}
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Product page",
+  "settings": [
+    { "type": "checkbox", "id": "show_wishlist_button", "label": "Show wishlist button (decorative)", "default": true },
+    { "type": "url", "id": "size_guide_url", "label": "Size guide link" },
+    { "type": "text", "id": "shipping_note", "label": "Shipping note", "default": "Complimentary shipping on all orders" }
+  ]
+}
+{% endschema %}

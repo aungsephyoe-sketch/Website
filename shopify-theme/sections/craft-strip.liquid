@@ -1,0 +1,45 @@
+<section class="craft-section" id="{{ section.settings.anchor_id | default: 'craft' }}">
+  <div class="container">
+    <h2 class="craft-heading" data-animate>{{ section.settings.title }}</h2>
+    <div class="craft-strip" data-animate>
+      {%- for block in section.blocks -%}
+        <div class="craft-item" {{ block.shopify_attributes }}>
+          <div class="craft-icon">{% if forloop.index < 10 %}0{{ forloop.index }}{% else %}{{ forloop.index }}{% endif %}</div>
+          <h3>{{ block.settings.title }}</h3>
+          <p>{{ block.settings.text }}</p>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Feature strip",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "craft" },
+    { "type": "text", "id": "title", "label": "Heading", "default": "The Craft" }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title" },
+        { "type": "textarea", "id": "text", "label": "Description" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "feature", "settings": { "title": "4-Way Stretch", "text": "Nylon-elastane blend for unrestricted movement" } },
+      { "type": "feature", "settings": { "title": "Compression Fit", "text": "Graduated zones mapped to muscle groups" } },
+      { "type": "feature", "settings": { "title": "Antimicrobial", "text": "Silver-ion threads eliminate odor-causing bacteria" } },
+      { "type": "feature", "settings": { "title": "Flatlock Seams", "text": "Zero-chafe construction for all-day comfort" } }
+    ]
+  },
+  "presets": [
+    { "name": "Feature strip" }
+  ]
+}
+{% endschema %}

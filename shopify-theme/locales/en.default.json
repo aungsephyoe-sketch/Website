@@ -1,0 +1,27 @@
+{
+  "general": {
+    "search": {
+      "search": "Search",
+      "no_results_html": "No results found for \"{{ terms }}\""
+    }
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to Cart",
+      "sold_out": "Sold Out",
+      "unavailable": "Unavailable"
+    }
+  },
+  "cart": {
+    "general": {
+      "title": "Your Cart",
+      "empty": "Your cart is empty.",
+      "continue_shopping": "Continue Shopping",
+      "checkout": "Proceed to Checkout",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "shipping": "Shipping",
+      "free_shipping": "Free"
+    }
+  }
+}

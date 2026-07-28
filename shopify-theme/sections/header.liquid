@@ -1,0 +1,64 @@
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <div class="nav-left">
+      <button class="nav-menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="nav-links">
+        {%- for link in linklists[section.settings.menu].links -%}
+          <a href="{{ link.url }}" class="nav-link">{{ link.title }}</a>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    <a href="{{ routes.root_url }}" class="nav-logo">
+      {%- if section.settings.logo != blank -%}
+        <img src="{{ section.settings.logo | image_url: width: 300 }}" alt="{{ shop.name }}" width="150" style="width:auto;height:28px;">
+      {%- else -%}
+        <span class="nav-logo-text">{{ shop.name }}</span>
+      {%- endif -%}
+    </a>
+
+    <div class="nav-right">
+      <a href="{{ routes.search_url }}" class="nav-icon" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </a>
+      <a href="{{ routes.account_url }}" class="nav-icon" aria-label="Account">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+      <a href="{{ routes.cart_url }}" class="nav-icon nav-cart" aria-label="Cart" style="position:relative">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="cart-count" id="cartCount" style="display:{% if cart.item_count > 0 %}flex{% else %}none{% endif %}">{{ cart.item_count }}</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-inner">
+    {%- for link in linklists[section.settings.menu].links -%}
+      <a href="{{ link.url }}" class="mobile-link">{{ link.title }}</a>
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image (optional, wordmark used if blank)"
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Navigation menu",
+      "default": "main-menu"
+    }
+  ]
+}
+{% endschema %}

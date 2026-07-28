@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {
+        "show_wishlist_button": true,
+        "shipping_note": "Complimentary shipping on all orders"
+      }
+    }
+  },
+  "order": ["main"]
+}

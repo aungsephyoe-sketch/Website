@@ -1,0 +1,35 @@
+<section class="hero" id="hero">
+  <div class="hero-image">
+    {%- if section.settings.image != blank -%}
+      <img src="{{ section.settings.image | image_url: width: 2000 }}" alt="{{ section.settings.image.alt | escape }}" width="{{ section.settings.image.width }}" height="{{ section.settings.image.height }}">
+    {%- else -%}
+      <img src="{{ 'hero-beach-squad.jpeg' | asset_url }}" alt="{{ section.settings.title | escape }}">
+    {%- endif -%}
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    {%- if section.settings.eyebrow != blank -%}
+      <span class="hero-eyebrow" style="opacity:0;transform:translateY(20px)">{{ section.settings.eyebrow }}</span>
+    {%- endif -%}
+    <h1 class="hero-title" style="opacity:0;transform:translateY(30px)">{{ section.settings.title | newline_to_br }}</h1>
+    {%- if section.settings.button_label != blank -%}
+      <a href="{{ section.settings.button_link | default: '#collection' }}" class="hero-cta" style="opacity:0;transform:translateY(20px)">{{ section.settings.button_label }}</a>
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero banner",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow text", "default": "Summer 2026" },
+    { "type": "textarea", "id": "title", "label": "Heading (press enter for a line break)", "default": "The Pantheon\nCollection" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Discover" },
+    { "type": "url", "id": "button_link", "label": "Button link" }
+  ],
+  "presets": [
+    { "name": "Hero banner" }
+  ]
+}
+{% endschema %}

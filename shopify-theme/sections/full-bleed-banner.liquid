@@ -1,0 +1,67 @@
+{%- assign style = section.settings.style -%}
+<section class="{% if style == 'centered' %}world-section{% else %}campaign-banner{% endif %}" {% if style == 'centered' %}id="{{ section.settings.anchor_id }}"{% endif %}>
+  {%- if style == 'centered' -%}
+  <div class="world-banner" data-animate>
+    <div class="world-image">
+      {%- if section.settings.image != blank -%}
+        <img src="{{ section.settings.image | image_url: width: 2000 }}" alt="{{ section.settings.image.alt | escape }}" loading="lazy">
+      {%- else -%}
+        <img src="{{ 'hero-motorcycle.jpeg' | asset_url }}" alt="{{ section.settings.title | escape }}" loading="lazy">
+      {%- endif -%}
+    </div>
+    <div class="world-overlay"></div>
+    <div class="world-content">
+      {%- if section.settings.eyebrow != blank -%}<span class="world-eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+      <h2 class="world-title">{{ section.settings.title | newline_to_br }}</h2>
+      {%- if section.settings.button_label != blank -%}
+        <a href="{{ section.settings.button_link }}" class="world-cta">{{ section.settings.button_label }}</a>
+      {%- endif -%}
+    </div>
+  </div>
+  {%- else -%}
+  <div class="campaign-image">
+    {%- if section.settings.image != blank -%}
+      <img src="{{ section.settings.image | image_url: width: 2000 }}" alt="{{ section.settings.image.alt | escape }}" loading="lazy">
+    {%- else -%}
+      <img src="{{ 'hero-motorcycle.jpeg' | asset_url }}" alt="{{ section.settings.title | escape }}" loading="lazy">
+    {%- endif -%}
+  </div>
+  <div class="campaign-overlay"></div>
+  <div class="campaign-content">
+    {%- if section.settings.eyebrow != blank -%}<span class="campaign-eyebrow">{{ section.settings.eyebrow }}</span>{%- endif -%}
+    <h2 class="campaign-title">{{ section.settings.title | newline_to_br }}</h2>
+    {%- if section.settings.subtitle != blank -%}<p class="campaign-subtitle">{{ section.settings.subtitle }}</p>{%- endif -%}
+    {%- if section.settings.button_label != blank -%}
+      <a href="{{ section.settings.button_link }}" class="campaign-cta">{{ section.settings.button_label }}</a>
+    {%- endif -%}
+  </div>
+  {%- endif -%}
+</section>
+
+{% schema %}
+{
+  "name": "Full-bleed banner",
+  "settings": [
+    {
+      "type": "select",
+      "id": "style",
+      "label": "Layout style",
+      "options": [
+        { "value": "side", "label": "Text bottom-left (campaign)" },
+        { "value": "centered", "label": "Centered text (world)" }
+      ],
+      "default": "side"
+    },
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID (for nav links)", "default": "world" },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow text" },
+    { "type": "textarea", "id": "title", "label": "Heading (press enter for a line break)" },
+    { "type": "text", "id": "subtitle", "label": "Subtitle (side style only)" },
+    { "type": "text", "id": "button_label", "label": "Button label" },
+    { "type": "url", "id": "button_link", "label": "Button link" }
+  ],
+  "presets": [
+    { "name": "Full-bleed banner" }
+  ]
+}
+{% endschema %}

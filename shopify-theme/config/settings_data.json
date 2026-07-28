@@ -1,0 +1,13 @@
+{
+  "current": "Default",
+  "presets": {
+    "Default": {
+      "color_black": "#000000",
+      "color_white": "#ffffff",
+      "color_off_white": "#f5f0eb",
+      "color_cream": "#ede6db",
+      "color_brown": "#6b5b45",
+      "color_gold": "#c4a265"
+    }
+  }
+}
