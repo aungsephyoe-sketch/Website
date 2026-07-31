@@ -2,7 +2,7 @@
 // Downloads images to disk via chrome.downloads, then injects them into
 // the FB file input using CDP DOM.setFileInputFiles (fires a trusted event).
 
-function downloadFile(url, filename, referer) {
+function downloadFile(url, filename) {
     return new Promise((resolve) => {
         let dlId = null;
         let settled = false;
@@ -35,12 +35,6 @@ function downloadFile(url, filename, referer) {
         chrome.downloads.onChanged.addListener(onChanged);
 
         const opts = { url, filename, saveAs: false, conflictAction: 'overwrite' };
-        if (referer) {
-            opts.headers = [
-                { name: 'Referer', value: referer },
-                { name: 'User-Agent', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-            ];
-        }
 
         chrome.downloads.download(opts, (id) => {
             if (chrome.runtime.lastError || !id) {
@@ -103,7 +97,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         (async () => {
             try {
                 const urls = (msg.urls || []).slice(0, 15);
-                const referer = msg.referer || null;
                 console.log('[DM BG] Downloading', urls.length, 'photos...');
 
                 // Download all images in parallel
@@ -111,7 +104,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                     urls.map((url, i) => {
                         const raw = url.split('?')[0];
                         const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
-                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext, referer);
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
                     })
                 )).filter(Boolean);
 
@@ -151,10 +144,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         (async () => {
             try {
                 const url = msg.url;
-                const referer = msg.referer || null;
                 const raw = url.split('?')[0];
                 const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
-                const path = await downloadFile(url, 'DealerCopier/car-video.' + ext, referer);
+                const path = await downloadFile(url, 'DealerCopier/car-video.' + ext);
 
                 if (!path) { sendResponse({ ok: false, error: 'Video download failed' }); return; }
 
@@ -185,14 +177,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             try {
                 const urls = (msg.urls || []).slice(0, 15);
                 const videoUrl = msg.videoUrl || null;
-                const referer = msg.referer || null;
-                console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos, referer:', referer);
+                console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos');
 
                 const paths = (await Promise.all(
                     urls.map((url, i) => {
                         const raw = url.split('?')[0];
                         const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
-                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext, referer);
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
                     })
                 )).filter(Boolean);
 
@@ -200,7 +191,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 if (videoUrl) {
                     const raw = videoUrl.split('?')[0];
                     const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
-                    videoPath = await downloadFile(videoUrl, 'DealerCopier/car-video.' + ext, referer);
+                    videoPath = await downloadFile(videoUrl, 'DealerCopier/car-video.' + ext);
                 }
 
                 console.log('[DM BG] Downloaded', paths.length, 'photos, video:', videoPath);

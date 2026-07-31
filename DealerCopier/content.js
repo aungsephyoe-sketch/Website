@@ -7,6 +7,19 @@ function extractListing() {
         description: '', images: [], videos: [], url: window.location.href
     };
 
+    // Third-party badges/widgets (vehicle history report logos, etc.) that show up
+    // as <img> tags on dealer pages but are never actual photos of the vehicle.
+    const JUNK_IMAGE_HOSTS = ['carfax.com', 'autocheck.com'];
+    function isJunkImage(src) {
+        if (!src || src.includes('logo') || src.includes('icon')
+            || src.includes('placeholder') || src.includes('blank.gif')) return true;
+        try {
+            const host = new URL(src, window.location.href).hostname;
+            if (JUNK_IMAGE_HOSTS.some(h => host === h || host.endsWith('.' + h))) return true;
+        } catch(e) {}
+        return false;
+    }
+
     // ── Strategy 1: Schema.org structured data ──
     document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
         try {
@@ -32,7 +45,7 @@ function extractListing() {
                     if (item.description) data.description = data.description || item.description;
                     if (item.image) {
                         const imgs = Array.isArray(item.image) ? item.image : [item.image];
-                        data.images.push(...imgs.map(i => typeof i === 'string' ? i : i.url).filter(Boolean));
+                        data.images.push(...imgs.map(i => typeof i === 'string' ? i : i.url).filter(Boolean).filter(u => !isJunkImage(u)));
                     }
                 }
             });
@@ -47,7 +60,7 @@ function extractListing() {
     if (!data.price) data.price = meta('og:price:amount') ? '$' + meta('og:price:amount') : '';
     if (!data.images.length) {
         const ogImg = meta('og:image');
-        if (ogImg) data.images.push(ogImg);
+        if (ogImg && !isJunkImage(ogImg)) data.images.push(ogImg);
     }
 
     // ── Strategy 3: Common DOM patterns ──
@@ -274,17 +287,15 @@ function extractListing() {
     // ── Strategy 7: Collect gallery images (handle lazy loading) ──
     document.querySelectorAll('img[data-src], img[data-lazy], img[data-lazy-src], img[data-original], img[data-url]').forEach(img => {
         const lazySrc = img.dataset.src || img.dataset.lazy || img.dataset.lazySrc || img.dataset.original || img.dataset.url;
-        if (lazySrc && lazySrc.startsWith('http')) {
-            if (!lazySrc.includes('logo') && !lazySrc.includes('icon') && !data.images.includes(lazySrc)) {
-                data.images.push(lazySrc);
-            }
+        if (lazySrc && lazySrc.startsWith('http') && !isJunkImage(lazySrc) && !data.images.includes(lazySrc)) {
+            data.images.push(lazySrc);
         }
     });
     document.querySelectorAll('noscript').forEach(ns => {
         const matches = ns.textContent.match(/src=["'](https?:[^"']+)["']/g) || [];
         matches.forEach(attr => {
             const url = attr.replace(/src=["']/,'').replace(/["']/,'');
-            if (url && !url.includes('logo') && !url.includes('icon') && !data.images.includes(url)) {
+            if (url && !isJunkImage(url) && !data.images.includes(url)) {
                 data.images.push(url);
             }
         });
@@ -295,8 +306,7 @@ function extractListing() {
             img.dataset.original, img.getAttribute('data-full'), img.getAttribute('data-zoom-image')
         ];
         for (const src of candidates) {
-            if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon')
-                && !src.includes('placeholder') && !src.includes('blank.gif')
+            if (src && src.startsWith('http') && !isJunkImage(src)
                 && src.match(/\.(jpg|jpeg|png|webp)/i)
                 && !data.images.includes(src)) {
                 data.images.push(src);

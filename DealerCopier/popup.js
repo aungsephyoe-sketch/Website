@@ -89,17 +89,10 @@ function renderListing(d) {
     document.getElementById('btnDownload').addEventListener('click', () => {
         const photos = d.images ? d.images.slice(0,15) : [];
         if (!photos.length) { showToast('No photos found'); return; }
-        const referer = d.url || '';
-        const headers = referer ? [
-            { name: 'Referer', value: referer },
-            { name: 'User-Agent', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-        ] : undefined;
         photos.forEach((url, i) => {
             const raw = url.split('?')[0];
             const ext = raw.split('.').pop().slice(0,4) || 'jpg';
-            const opts = { url, filename: 'DealerCopier/car-photo-'+(i+1)+'.'+ext, saveAs: false, conflictAction: 'overwrite' };
-            if (headers) opts.headers = headers;
-            chrome.downloads.download(opts);
+            chrome.downloads.download({ url, filename: 'DealerCopier/car-photo-'+(i+1)+'.'+ext, saveAs: false, conflictAction: 'overwrite' });
         });
         showToast('Saving ' + photos.length + ' photos…');
     });
