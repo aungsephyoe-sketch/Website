@@ -95,7 +95,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'UPLOAD_PHOTOS') {
         (async () => {
             try {
-                const urls = (msg.urls || []).slice(0, 10);
+                const urls = (msg.urls || []).slice(0, 15);
                 const referer = msg.referer || null;
                 console.log('[DM BG] Downloading', urls.length, 'photos...');
 
@@ -176,7 +176,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'DOWNLOAD_PHOTOS') {
         (async () => {
             try {
-                const urls = (msg.urls || []).slice(0, 10);
+                const urls = (msg.urls || []).slice(0, 15);
                 const videoUrl = msg.videoUrl || null;
                 const referer = msg.referer || null;
                 console.log('[DM BG] DOWNLOAD_PHOTOS:', urls.length, 'photos, referer:', referer);

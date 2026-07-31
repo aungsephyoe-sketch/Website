@@ -47,7 +47,7 @@ function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
 function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderListing(d) {
-    const photoCount = d.images ? d.images.slice(0,10).length : 0;
+    const photoCount = d.images ? d.images.slice(0,15).length : 0;
     const videoCount = d.videos ? d.videos.slice(0,1).length : 0;
     const mediaLabel = [photoCount ? photoCount+' photo'+(photoCount>1?'s':'') : '', videoCount ? '1 video' : ''].filter(Boolean).join(', ') || 'None found';
 
@@ -74,7 +74,7 @@ function renderListing(d) {
             <button class="btn btn-primary" id="btnCopy">Copy Description</button>
         </div>
         <div class="btn-row" style="margin-top:8px">
-            <button class="btn btn-secondary" id="btnDownload" style="width:100%">⬇ Save 10 Photos (${photoCount} found)</button>
+            <button class="btn btn-secondary" id="btnDownload" style="width:100%">⬇ Save 15 Photos (${photoCount} found)</button>
         </div>
         <div class="btn-row" style="margin-top:8px">
             <button class="btn btn-primary" id="btnMarketplace" style="background:#42b72a">Auto-Fill Marketplace</button>
@@ -87,7 +87,7 @@ function renderListing(d) {
         navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(() => { document.getElementById('f-desc').select(); document.execCommand('copy'); showToast('Copied!'); });
     });
     document.getElementById('btnDownload').addEventListener('click', () => {
-        const photos = d.images ? d.images.slice(0,10) : [];
+        const photos = d.images ? d.images.slice(0,15) : [];
         if (!photos.length) { showToast('No photos found'); return; }
         const referer = d.url || '';
         const headers = referer ? [
@@ -116,7 +116,7 @@ function renderListing(d) {
     });
 
     document.getElementById('btnPhotoPost').addEventListener('click', () => {
-        const photoUrls = (d.images || []).slice(0, 10);
+        const photoUrls = (d.images || []).slice(0, 15);
         const videoUrl  = (d.videos || []).find(u => !/youtube|youtu\.be|vimeo/.test(u)) || null;
         if (!photoUrls.length) { showToast('No photos found on this page'); return; }
 
@@ -145,7 +145,7 @@ function renderListing(d) {
             chrome.storage.local.set({ dealerListing: listing }, () => {
                 chrome.tabs.create({ url: 'https://www.facebook.com/marketplace/create/vehicle' });
                 setTimeout(() => {
-                    btn.textContent = '📸 Save 10 Photos + Post to Marketplace';
+                    btn.textContent = '📸 Save 15 Photos + Post to Marketplace';
                     btn.disabled = false;
                 }, 3000);
             });

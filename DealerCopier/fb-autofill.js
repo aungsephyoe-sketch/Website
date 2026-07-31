@@ -311,7 +311,7 @@
 
     async function uploadPhotosByUrl(images, referer) {
         if (!images || !images.length) return;
-        const urls = images.slice(0, 10);
+        const urls = images.slice(0, 15);
         status('Downloading ' + urls.length + ' photos...');
         console.log('[DM] Requesting photo upload via background:', urls.length, 'images');
 
