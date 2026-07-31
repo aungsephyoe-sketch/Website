@@ -15,7 +15,10 @@ function downloadFile(url, filename, referer) {
             resolve(result);
         };
 
-        const timeout = setTimeout(() => finish(null), 30000);
+        const timeout = setTimeout(() => {
+            console.warn('[DM BG] Download timed out after 30s:', url);
+            finish(null);
+        }, 30000);
 
         const onChanged = (delta) => {
             if (dlId === null || delta.id !== dlId) return;
@@ -24,6 +27,7 @@ function downloadFile(url, filename, referer) {
                     finish(items && items[0] ? items[0].filename : null);
                 });
             } else if (delta.state && delta.state.current === 'interrupted') {
+                console.warn('[DM BG] Download interrupted:', url, '—', (delta.error && delta.error.current) || 'unknown reason');
                 finish(null);
             }
         };
@@ -40,7 +44,7 @@ function downloadFile(url, filename, referer) {
 
         chrome.downloads.download(opts, (id) => {
             if (chrome.runtime.lastError || !id) {
-                console.warn('[DM BG] Download start failed:', chrome.runtime.lastError?.message);
+                console.warn('[DM BG] Download start failed:', url, '—', chrome.runtime.lastError?.message);
                 finish(null);
                 return;
             }
@@ -52,7 +56,10 @@ function downloadFile(url, filename, referer) {
             chrome.downloads.search({ id }, (items) => {
                 const item = items && items[0];
                 if (item && item.state === 'complete') finish(item.filename);
-                else if (item && item.state === 'interrupted') finish(null);
+                else if (item && item.state === 'interrupted') {
+                    console.warn('[DM BG] Download interrupted:', url, '—', item.error || 'unknown reason');
+                    finish(null);
+                }
             });
         });
     });
