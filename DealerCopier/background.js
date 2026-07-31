@@ -5,20 +5,26 @@
 function downloadFile(url, filename, referer) {
     return new Promise((resolve) => {
         let dlId = null;
-        const timeout = setTimeout(() => resolve(null), 30000);
+        let settled = false;
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            chrome.downloads.onChanged.removeListener(onChanged);
+            clearTimeout(timeout);
+            resolve(result);
+        };
+
+        const timeout = setTimeout(() => finish(null), 30000);
 
         const onChanged = (delta) => {
-            if (delta.id !== dlId) return;
+            if (dlId === null || delta.id !== dlId) return;
             if (delta.state && delta.state.current === 'complete') {
-                chrome.downloads.onChanged.removeListener(onChanged);
-                clearTimeout(timeout);
                 chrome.downloads.search({ id: dlId }, (items) => {
-                    resolve(items && items[0] ? items[0].filename : null);
+                    finish(items && items[0] ? items[0].filename : null);
                 });
             } else if (delta.state && delta.state.current === 'interrupted') {
-                chrome.downloads.onChanged.removeListener(onChanged);
-                clearTimeout(timeout);
-                resolve(null);
+                finish(null);
             }
         };
 
@@ -34,13 +40,20 @@ function downloadFile(url, filename, referer) {
 
         chrome.downloads.download(opts, (id) => {
             if (chrome.runtime.lastError || !id) {
-                chrome.downloads.onChanged.removeListener(onChanged);
-                clearTimeout(timeout);
                 console.warn('[DM BG] Download start failed:', chrome.runtime.lastError?.message);
-                resolve(null);
-            } else {
-                dlId = id;
+                finish(null);
+                return;
             }
+            dlId = id;
+            // The download can complete (or fail) before this callback runs, in
+            // which case the matching onChanged event already fired and was
+            // dropped above because dlId was still null. Re-check state now to
+            // catch that race instead of stalling until the timeout.
+            chrome.downloads.search({ id }, (items) => {
+                const item = items && items[0];
+                if (item && item.state === 'complete') finish(item.filename);
+                else if (item && item.state === 'interrupted') finish(null);
+            });
         });
     });
 }
@@ -83,6 +96,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         (async () => {
             try {
                 const urls = (msg.urls || []).slice(0, 10);
+                const referer = msg.referer || null;
                 console.log('[DM BG] Downloading', urls.length, 'photos...');
 
                 // Download all images in parallel
@@ -90,7 +104,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                     urls.map((url, i) => {
                         const raw = url.split('?')[0];
                         const ext = raw.split('.').pop().slice(0, 4) || 'jpg';
-                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext);
+                        return downloadFile(url, 'DealerCopier/photo-' + (i + 1) + '.' + ext, referer);
                     })
                 )).filter(Boolean);
 
@@ -130,9 +144,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         (async () => {
             try {
                 const url = msg.url;
+                const referer = msg.referer || null;
                 const raw = url.split('?')[0];
                 const ext = raw.split('.').pop().slice(0, 4) || 'mp4';
-                const path = await downloadFile(url, 'DealerCopier/car-video.' + ext);
+                const path = await downloadFile(url, 'DealerCopier/car-video.' + ext, referer);
 
                 if (!path) { sendResponse({ ok: false, error: 'Video download failed' }); return; }
 

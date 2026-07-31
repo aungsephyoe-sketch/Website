@@ -1,14 +1,14 @@
 // Facebook Marketplace vehicle auto-fill
-// VERSION 18
+// VERSION 19
 
 (function () {
     if (document.getElementById('dm-fab')) return;
 
-    console.log('%c[DM] VERSION 18 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
+    console.log('%c[DM] VERSION 19 LOADED', 'background:green;color:white;font-size:16px;padding:4px 8px');
 
     const btn = document.createElement('button');
     btn.id = 'dm-fab';
-    btn.textContent = 'Fill Listing (v18)';
+    btn.textContent = 'Fill Listing (v19)';
     Object.assign(btn.style, {
         position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
         background: '#1877f2', color: '#fff', border: 'none', borderRadius: '24px',
@@ -291,7 +291,7 @@
         });
     }
 
-    async function uploadPhotos(images, photoPaths) {
+    async function uploadPhotos(images, photoPaths, referer) {
         // If pre-downloaded paths exist, use CDP directly (background uses sender.tab.id)
         if (photoPaths && photoPaths.length) {
             status('Uploading ' + photoPaths.length + ' saved photos...');
@@ -306,16 +306,16 @@
             await sleep(2000);
             return;
         }
-        await uploadPhotosByUrl(images);
+        await uploadPhotosByUrl(images, referer);
     }
 
-    async function uploadPhotosByUrl(images) {
+    async function uploadPhotosByUrl(images, referer) {
         if (!images || !images.length) return;
         const urls = images.slice(0, 10);
         status('Downloading ' + urls.length + ' photos...');
         console.log('[DM] Requesting photo upload via background:', urls.length, 'images');
 
-        const resp = await sendToBg({ type: 'UPLOAD_PHOTOS', urls });
+        const resp = await sendToBg({ type: 'UPLOAD_PHOTOS', urls, referer });
         if (resp && resp.ok) {
             status('Photos uploaded (' + resp.count + ')!');
             console.log('[DM] Photos uploaded successfully:', resp.count);
@@ -326,7 +326,7 @@
         await sleep(2000);
     }
 
-    async function uploadVideo(videos, videoPath) {
+    async function uploadVideo(videos, videoPath, referer) {
         // Use pre-downloaded path if available
         if (videoPath) {
             status('Uploading saved video...');
@@ -351,7 +351,7 @@
         status('Uploading video...');
         console.log('[DM] Requesting video upload via background:', url);
 
-        const resp = await sendToBg({ type: 'UPLOAD_VIDEO', url });
+        const resp = await sendToBg({ type: 'UPLOAD_VIDEO', url, referer });
         if (resp && resp.ok) {
             status('Video uploaded!');
             console.log('[DM] Video uploaded');
@@ -381,8 +381,8 @@
         }));
 
         // Upload photos + video first (file inputs are present before other fields are filled)
-        await uploadPhotos(d.images, d.photoPaths);
-        await uploadVideo(d.videos, d.videoPath);
+        await uploadPhotos(d.images, d.photoPaths, d.url);
+        await uploadVideo(d.videos, d.videoPath, d.url);
         await sleep(1000);
 
         status('Vehicle type...');
