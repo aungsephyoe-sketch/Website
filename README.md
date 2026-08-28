@@ -123,6 +123,29 @@ public/
   placeholders/                Themed placeholder art used when a listing has no photos yet
 ```
 
+## Vehicle history reports (Carfax / AutoCheck)
+
+Every vehicle detail page shows **Carfax Report** / **AutoCheck Report**
+buttons, built from the vehicle's VIN — they only appear once a VIN is on
+file (via `/admin` or by editing `data/vehicles.json`), so a listing never
+links to a bogus report. The link formats live in
+[`lib/site-config.ts`](lib/site-config.ts) as `CARFAX_URL_TEMPLATE` /
+`AUTOCHECK_URL_TEMPLATE`. Those are the general public report-lookup URLs
+for each service — if your dealership has a Carfax or AutoCheck dealer
+program, you may have been issued a different link format (sometimes with a
+dealer/account ID baked in); swap those two lines for that pattern if so.
+
+## Payment estimates & smart badges
+
+Cards and detail pages show a rough **"Est. $XXX/mo"** payment line —
+clearly labeled as an estimate, using the APR/term/down-payment assumptions
+in `lib/site-config.ts` (`FINANCE_APR_PERCENT`, `FINANCE_TERM_MONTHS`,
+`FINANCE_DOWN_PAYMENT_RATIO`). Tune those to match your actual typical
+financing. Listings can also pick up small **New Arrival / Great Price /
+Low Mileage** badges — these are computed live from the real numbers
+already in your inventory (`lib/badges.ts`), never a fabricated claim, so
+they stay accurate as your real listings replace the sample data.
+
 ## Contact info shown on the site
 
 Phone `(469) 881-3778` and email `aung@texascarone.com` are centralized in

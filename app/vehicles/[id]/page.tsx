@@ -4,14 +4,25 @@ import type { Metadata } from "next";
 import { getAllVehicles, getVehicleById } from "@/lib/vehicles";
 import { formatPrice, formatMileage, vehicleTitle } from "@/lib/format";
 import { getDisplayPhotos } from "@/lib/photos";
+import { computeBadgeMap } from "@/lib/badges";
+import type { SmartBadge } from "@/lib/badges";
 import PhotoGallery from "@/components/PhotoGallery";
 import InquiryForm from "@/components/InquiryForm";
 import VehicleCard from "@/components/VehicleCard";
-import { ChevronLeftIcon } from "@/components/icons";
+import HistoryReportLinks from "@/components/HistoryReportLinks";
+import PaymentEstimate from "@/components/PaymentEstimate";
+import MobileCtaBar from "@/components/MobileCtaBar";
+import { ChevronLeftIcon, SparklesIcon, TagIcon, GaugeIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> };
+
+const BADGE_STYLE: Record<SmartBadge, { style: string; icon: typeof SparklesIcon }> = {
+  "New Arrival": { style: "bg-blue-600 text-white", icon: SparklesIcon },
+  "Great Price": { style: "bg-emerald-600 text-white", icon: TagIcon },
+  "Low Mileage": { style: "bg-purple-600 text-white", icon: GaugeIcon },
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
@@ -31,6 +42,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
 
   const allVehicles = await getAllVehicles();
   const similar = allVehicles.filter((v) => v.id !== vehicle.id && v.bodyType === vehicle.bodyType).slice(0, 3);
+  const badges = computeBadgeMap(allVehicles).get(vehicle.id) ?? [];
 
   const title = vehicleTitle(vehicle);
   const specs: [string, string][] = [
@@ -46,7 +58,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 pb-28 sm:px-6 lg:pb-8">
       <Link
         href="/"
         className="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-slate-500 transition hover:text-blue-700"
@@ -55,10 +67,26 @@ export default async function VehicleDetailPage({ params }: PageProps) {
       </Link>
 
       <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-        <div>
+        <div className="animate-fade-up">
           <PhotoGallery photos={getDisplayPhotos(vehicle)} alt={title} />
 
           <div className="mt-8">
+            {badges.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {badges.map((b) => {
+                  const { style, icon: Icon } = BADGE_STYLE[b];
+                  return (
+                    <span
+                      key={b}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${style}`}
+                    >
+                      <Icon className="h-3 w-3" /> {b}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
             <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">{title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-4">
               <span className="text-2xl font-bold text-blue-700">{formatPrice(vehicle.price)}</span>
@@ -68,6 +96,13 @@ export default async function VehicleDetailPage({ params }: PageProps) {
                   {vehicle.status}
                 </span>
               )}
+            </div>
+            <div className="mt-1">
+              <PaymentEstimate price={vehicle.price} size="lg" />
+            </div>
+
+            <div className="mt-4">
+              <HistoryReportLinks vin={vehicle.vin} />
             </div>
 
             {vehicle.description && (
@@ -121,6 +156,8 @@ export default async function VehicleDetailPage({ params }: PageProps) {
           </div>
         </div>
       )}
+
+      <MobileCtaBar />
     </div>
   );
 }

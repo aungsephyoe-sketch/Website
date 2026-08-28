@@ -3,20 +3,49 @@
 import { useMemo, useState } from "react";
 import type { Vehicle } from "@/lib/types";
 import { BODY_TYPES } from "@/lib/types";
+import { computeBadgeMap } from "@/lib/badges";
 import VehicleCard from "./VehicleCard";
 
 type SortOption = "newest" | "price-asc" | "price-desc" | "mileage-asc" | "year-desc";
 
-export default function InventoryBrowser({ vehicles }: { vehicles: Vehicle[] }) {
-  const [query, setQuery] = useState("");
-  const [bodyType, setBodyType] = useState<string>("all");
+const TILE_COLORS: Record<string, string> = {
+  Sedan: "border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400",
+  SUV: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400",
+  Truck: "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400",
+  Van: "border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-400",
+  Coupe: "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400",
+  Hatchback: "border-cyan-200 bg-cyan-50 text-cyan-700 hover:border-cyan-400",
+  Convertible: "border-pink-200 bg-pink-50 text-pink-700 hover:border-pink-400",
+  Wagon: "border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-400",
+  Other: "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-400",
+};
+
+export default function InventoryBrowser({
+  vehicles,
+  initialQuery = "",
+  initialBodyType = "all",
+}: {
+  vehicles: Vehicle[];
+  initialQuery?: string;
+  initialBodyType?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [bodyType, setBodyType] = useState<string>(initialBodyType);
   const [maxPrice, setMaxPrice] = useState<string>("");
   const [sort, setSort] = useState<SortOption>("newest");
 
-  const bodyTypesPresent = useMemo(() => {
-    const present = new Set(vehicles.map((v) => v.bodyType));
-    return BODY_TYPES.filter((b) => present.has(b));
+  const badgeMap = useMemo(() => computeBadgeMap(vehicles), [vehicles]);
+
+  const bodyTypeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const v of vehicles) counts.set(v.bodyType, (counts.get(v.bodyType) ?? 0) + 1);
+    return counts;
   }, [vehicles]);
+
+  const bodyTypesPresent = useMemo(
+    () => BODY_TYPES.filter((b) => (bodyTypeCounts.get(b) ?? 0) > 0),
+    [bodyTypeCounts]
+  );
 
   const filtered = useMemo(() => {
     let list = vehicles;
@@ -59,6 +88,34 @@ export default function InventoryBrowser({ vehicles }: { vehicles: Vehicle[] }) 
 
   return (
     <div>
+      {bodyTypesPresent.length > 1 && (
+        <div className="mb-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setBodyType("all")}
+            className={`rounded-xl border-2 px-4 py-3 text-sm font-bold transition ${
+              bodyType === "all"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            All Vehicles <span className="opacity-70">({vehicles.length})</span>
+          </button>
+          {bodyTypesPresent.map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setBodyType(b)}
+              className={`rounded-xl border-2 px-4 py-3 text-sm font-bold transition ${
+                bodyType === b ? "border-slate-900 bg-slate-900 text-white" : (TILE_COLORS[b] ?? TILE_COLORS.Other)
+              }`}
+            >
+              {b} <span className="opacity-70">({bodyTypeCounts.get(b) ?? 0})</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="mb-8 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4">
         <input
           type="text"
@@ -118,8 +175,8 @@ export default function InventoryBrowser({ vehicles }: { vehicles: Vehicle[] }) 
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} />
+          {filtered.map((v, i) => (
+            <VehicleCard key={v.id} vehicle={v} badges={badgeMap.get(v.id) ?? []} index={i} />
           ))}
         </div>
       )}
