@@ -1,0 +1,35 @@
+{
+  "name": "shopusedcarz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shopusedcarz — used car listings site with admin panel and Twilio SMS lead alerts.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aungsephyoe-sketch/Website.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "twilio": "^6.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "eslint": "^10.9.1",
+    "eslint-config-next": "^16.3.3",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}

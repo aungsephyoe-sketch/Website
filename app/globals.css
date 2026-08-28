@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+::selection {
+  @apply bg-amber-200 text-slate-900;
+}
