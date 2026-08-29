@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Studio — Ares Pantheon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .page-header {
+            padding: 60px 0 28px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .page-header h1 {
+            font-family: var(--serif);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+        .page-subhead {
+            margin-top: 14px;
+            max-width: 640px;
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 48px;
+            align-items: start;
+            padding: 48px 0 100px;
+        }
+
+        /* Form panel */
+        .studio-panel {
+            position: sticky;
+            top: 88px;
+            background: var(--off-white);
+            padding: 32px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gray);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 14px 16px;
+            border: 1px solid #ddd;
+            background: var(--white);
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            color: var(--black);
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+            border-radius: 0;
+            resize: vertical;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { border-color: var(--black); }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder { color: #bbb; }
+
+        .field-hint { font-size: 0.72rem; color: var(--gray); line-height: 1.6; }
+        .field-hint a { color: var(--gray-dark); text-decoration: underline; text-underline-offset: 2px; }
+
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .key-row { display: flex; gap: 8px; align-items: stretch; }
+        .key-row input { flex: 1; min-width: 0; }
+        .forget-key-btn {
+            padding: 0 14px;
+            background: none;
+            border: 1px solid #ddd;
+            font-family: var(--sans);
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--gray);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .forget-key-btn:hover { border-color: var(--black); color: var(--black); }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--black);
+            color: var(--white);
+            border: none;
+            font-family: var(--sans);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.2s;
+        }
+        .generate-btn:hover { opacity: 0.75; }
+        .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .studio-error {
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #fdecea;
+            border: 1px solid #f3c2bd;
+            color: #9c2b23;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .privacy-note {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #e2ddd4;
+            font-size: 0.72rem;
+            color: var(--gray);
+            line-height: 1.7;
+        }
+        .privacy-note strong { color: var(--gray-dark); }
+
+        /* Results panel */
+        .studio-results-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .studio-results-header h2 {
+            font-family: var(--serif);
+            font-size: 1.4rem;
+            font-weight: 400;
+        }
+        .clear-btn {
+            background: none;
+            border: none;
+            font-family: var(--sans);
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gray);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .clear-btn:hover { color: var(--black); }
+
+        .studio-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+        }
+        .studio-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--gray);
+            font-family: var(--serif);
+            font-size: 1.2rem;
+            font-weight: 300;
+            border: 1px dashed #ddd;
+        }
+        .studio-card {
+            position: relative;
+            background: var(--off-white);
+            display: flex;
+            flex-direction: column;
+        }
+        .studio-card-img {
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            background: var(--cream);
+        }
+        .studio-card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .studio-card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+        .studio-card-prompt {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--black);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .studio-card-meta {
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--gray);
+        }
+        .studio-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+        .studio-card-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px 8px;
+            font-family: var(--sans);
+            font-size: 0.62rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: var(--white);
+            border: 1px solid #ddd;
+            color: var(--black);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .studio-card-btn:hover { border-color: var(--black); }
+        .studio-card-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.55);
+            color: var(--white);
+            cursor: pointer;
+            font-size: 0.7rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .studio-card-remove:hover { background: var(--black); }
+
+        @media (max-width: 900px) {
+            .studio-layout { grid-template-columns: 1fr; gap: 36px; padding: 32px 0 80px; }
+            .studio-panel { position: static; }
+        }
+        @media (max-width: 480px) {
+            .form-row-2 { grid-template-columns: 1fr; }
+            .key-row { flex-direction: column; }
+            .forget-key-btn { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <p>Complimentary Shipping on All Orders</p>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <div class="nav-left">
+                <button class="nav-menu-btn" id="menuBtn" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <div class="nav-links">
+                    <a href="index.html#collection" class="nav-link">Collections</a>
+                    <a href="index.html#editorial" class="nav-link">Editorial</a>
+                    <a href="index.html#craft" class="nav-link">Craft</a>
+                    <a href="index.html#world" class="nav-link">World of Ares</a>
+                    <a href="ai-studio.html" class="nav-link">AI Studio</a>
+                </div>
+            </div>
+            <a href="index.html" class="nav-logo">
+                <span class="nav-logo-text">Ares Pantheon</span>
+            </a>
+            <div class="nav-right">
+                <a href="index.html" class="nav-icon" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </a>
+                <a href="#" class="nav-icon" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </a>
+                <a href="cart.html" class="nav-icon nav-cart" aria-label="Cart" style="position:relative">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span class="cart-count" id="cartCount" style="display:none"></span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-inner">
+            <a href="index.html#collection" class="mobile-link">Collections</a>
+            <a href="index.html#editorial" class="mobile-link">Editorial</a>
+            <a href="index.html#craft" class="mobile-link">Craft</a>
+            <a href="index.html#world" class="mobile-link">World of Ares</a>
+            <a href="ai-studio.html" class="mobile-link">AI Studio</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>AI Image Studio</h1>
+            <p class="page-subhead">Generate original artwork and design concepts with <strong>gpt-image-1</strong> — the same OpenAI model that powers image generation in ChatGPT. Describe an idea, and bring it to life right in your browser.</p>
+        </div>
+
+        <div class="studio-layout">
+            <!-- Left: Generator form -->
+            <div class="studio-panel">
+                <form id="studioForm" novalidate>
+                    <div class="form-group">
+                        <label for="apiKeyInput">OpenAI API Key</label>
+                        <div class="key-row">
+                            <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" spellcheck="false">
+                            <button type="button" class="forget-key-btn" id="forgetKeyBtn">Forget</button>
+                        </div>
+                        <p class="field-hint">Stored only in your browser and sent directly to OpenAI — never to us. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com</a>.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="promptInput">Describe the image</label>
+                        <textarea id="promptInput" rows="4" placeholder="e.g. A minimalist gold Spartan helmet emblem on black fabric, luxury streetwear style" required></textarea>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="modelSelect">Model</label>
+                            <select id="modelSelect">
+                                <option value="gpt-image-1">gpt-image-1</option>
+                                <option value="dall-e-3">DALL·E 3</option>
+                                <option value="dall-e-2">DALL·E 2</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sizeSelect">Size</label>
+                            <select id="sizeSelect"></select>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group" id="qualityGroup">
+                            <label for="qualitySelect">Quality</label>
+                            <select id="qualitySelect"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="countSelect"># of Images</label>
+                            <select id="countSelect">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        <span id="generateBtnText">Generate Image</span>
+                    </button>
+                    <p class="studio-error" id="studioError" hidden></p>
+                </form>
+
+                <p class="privacy-note"><strong>Privacy:</strong> your API key and prompts are sent directly from your browser to OpenAI's servers over HTTPS. This site has no backend and never sees or stores your key. Generated images are cached in this browser only, so you can clear them anytime.</p>
+            </div>
+
+            <!-- Right: Results gallery -->
+            <div class="studio-results">
+                <div class="studio-results-header">
+                    <h2>Your Generations</h2>
+                    <button class="clear-btn" id="clearGalleryBtn" type="button" hidden>Clear All</button>
+                </div>
+                <div class="studio-gallery" id="studioGallery">
+                    <div class="studio-empty" id="studioEmpty">
+                        <p>Your generated images will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="cart.js"></script>
+    <script src="ai-studio.js"></script>
+    <script>
+        // Nav scroll
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 10);
+        }, { passive: true });
+
+        // Mobile menu
+        const menuBtn = document.getElementById('menuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+        });
+        document.querySelectorAll('.mobile-link').forEach(link => {
+            link.addEventListener('click', () => {
+                menuBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+    </script>
+</body>
+</html>
