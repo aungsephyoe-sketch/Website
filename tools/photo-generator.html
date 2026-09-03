@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>AI Photo Generator — Ares Pantheon Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #000000;
+            --dark: #0d0d0d;
+            --dark-2: #141414;
+            --dark-3: #1c1c1c;
+            --dark-4: #2a2a2a;
+            --white: #ffffff;
+            --off-white: #f5f0eb;
+            --gray: #8a8a8a;
+            --gray-light: #b5b5b5;
+            --gold: #c4a265;
+            --danger: #d16a5a;
+            --ok: #2a6e3f;
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --sans: 'Inter', -apple-system, Helvetica Neue, sans-serif;
+        }
+        * , *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body {
+            font-family: var(--sans);
+            background: var(--black);
+            color: var(--off-white);
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+        a { color: inherit; }
+        .pg-header {
+            border-bottom: 1px solid var(--dark-4);
+            padding: 22px clamp(20px, 4vw, 60px);
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+        }
+        .pg-back {
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--gray-light);
+            border-bottom: 1px solid transparent;
+        }
+        .pg-back:hover { color: var(--white); border-color: var(--white); }
+        .pg-title {
+            font-family: var(--serif);
+            font-size: 1.4rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            color: var(--white);
+        }
+        .pg-title em { color: var(--gold); font-style: normal; }
+        .pg-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 clamp(20px, 4vw, 60px);
+        }
+        .pg-lede {
+            padding: 32px 0 8px;
+            color: var(--gray-light);
+            font-size: 0.92rem;
+            max-width: 640px;
+        }
+        .notice {
+            margin: 24px 0;
+            padding: 18px 20px;
+            border: 1px solid var(--gold);
+            background: rgba(196,162,101,0.08);
+            font-size: 0.82rem;
+            color: var(--off-white);
+            line-height: 1.7;
+        }
+        .notice b { color: var(--gold); }
+        .card {
+            border: 1px solid var(--dark-4);
+            background: var(--dark-2);
+            padding: 26px clamp(18px, 3vw, 30px);
+            margin: 18px 0;
+        }
+        .card-step {
+            font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 6px;
+        }
+        .card-title {
+            font-family: var(--serif);
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--white);
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gray-light);
+            margin-bottom: 8px;
+        }
+        .field { margin-bottom: 18px; }
+        .field:last-child { margin-bottom: 0; }
+        .hint {
+            font-size: 0.78rem;
+            color: var(--gray);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+        input[type="password"],
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            background: var(--dark);
+            border: 1px solid var(--dark-4);
+            color: var(--white);
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            padding: 12px 14px;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gold); }
+        textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
+        .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+        .key-row { display: flex; gap: 10px; align-items: stretch; }
+        .key-row input { flex: 1; }
+        .checkbox-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--gray-light);
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .checkbox-line input { width: auto; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--white);
+            background: transparent;
+            border: 1px solid var(--white);
+            padding: 13px 26px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--sans);
+        }
+        .btn:hover:not(:disabled) { background: var(--white); color: var(--black); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-primary { background: var(--gold); border-color: var(--gold); color: var(--black); }
+        .btn-primary:hover:not(:disabled) { background: var(--white); border-color: var(--white); color: var(--black); }
+        .btn-ghost { border-color: var(--dark-4); color: var(--gray-light); }
+        .btn-ghost:hover:not(:disabled) { background: var(--dark-3); color: var(--white); }
+        .btn-sm { padding: 9px 16px; font-size: 0.64rem; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .chip {
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 9px 14px;
+            border: 1px solid var(--dark-4);
+            color: var(--gray-light);
+            cursor: pointer;
+            background: var(--dark);
+            transition: all 0.15s;
+        }
+        .chip:hover { border-color: var(--gold); color: var(--white); }
+        .chip.active { border-color: var(--gold); background: rgba(196,162,101,0.14); color: var(--gold); }
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--dark-4);
+            cursor: pointer;
+        }
+        .radio-option:hover { border-color: var(--dark-4); background: var(--dark-3); }
+        .radio-option input { margin-top: 3px; width: auto; }
+        .radio-option .ro-title { color: var(--white); font-size: 0.85rem; text-transform: none; letter-spacing: normal; }
+        .radio-option .ro-desc { color: var(--gray); font-size: 0.78rem; margin-top: 2px; text-transform: none; letter-spacing: normal; }
+        .ref-thumbs { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .ref-thumbs img { width: 74px; height: 74px; object-fit: cover; border: 1px solid var(--dark-4); }
+        #uploadWrap { display: none; margin-top: 12px; }
+        .status {
+            margin-top: 16px;
+            padding: 12px 14px;
+            font-size: 0.82rem;
+            display: none;
+            border-left: 2px solid var(--gray);
+        }
+        .status.show { display: block; }
+        .status.error { border-color: var(--danger); color: #f0b3a6; background: rgba(209,106,90,0.08); }
+        .status.loading { border-color: var(--gold); color: var(--gold); }
+        .status.ok { border-color: var(--ok); color: #9fd6ac; }
+        .gallery-empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.85rem;
+            border: 1px dashed var(--dark-4);
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+            margin-top: 6px;
+        }
+        .gallery-item { border: 1px solid var(--dark-4); background: var(--dark); }
+        .gallery-item img { width: 100%; display: block; background: #000; }
+        .gallery-item-body { padding: 12px 14px 16px; }
+        .gallery-item-body input[type="text"] { font-size: 0.78rem; padding: 8px 10px; margin-bottom: 10px; }
+        .gallery-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        footer.pg-footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid var(--dark-4);
+            color: var(--gray);
+            font-size: 0.82rem;
+            line-height: 1.8;
+        }
+        footer.pg-footer ol { padding-left: 20px; margin-top: 8px; }
+        footer.pg-footer code {
+            background: var(--dark-2);
+            border: 1px solid var(--dark-4);
+            padding: 1px 6px;
+            font-size: 0.78rem;
+            color: var(--off-white);
+        }
+        .spinner {
+            width: 12px; height: 12px;
+            border: 2px solid rgba(196,162,101,0.3);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header class="pg-header">
+        <a class="pg-back" href="../index.html">← Ares Pantheon</a>
+        <span class="pg-title">Photo <em>Generator</em></span>
+    </header>
+
+    <main class="pg-container">
+        <p class="pg-lede">Generates new product photography with OpenAI's image API, matched to the brand's existing gym-editorial style. Internal tool — not linked from the storefront.</p>
+
+        <div class="notice">
+            <b>How this works:</b> this site is static (GitHub Pages, no server), so there is nowhere safe to store a shared API key. Instead, <b>your own OpenAI API key stays in your browser only</b> — saved to this browser's local storage if you opt in, sent directly from your browser to OpenAI's API, and never seen by this repository or any server. Don't share this page's URL or your key. Each generation is billed to your OpenAI account.
+        </div>
+
+        <!-- STEP 1 — API KEY -->
+        <section class="card">
+            <div class="card-step">Step 1</div>
+            <div class="card-title">OpenAI API Key</div>
+            <div class="field">
+                <label for="apiKey">API key</label>
+                <div class="key-row">
+                    <input type="password" id="apiKey" placeholder="sk-...">
+                    <button class="btn btn-ghost btn-sm" id="toggleKeyBtn" type="button">Show</button>
+                    <button class="btn btn-ghost btn-sm" id="forgetKeyBtn" type="button">Forget</button>
+                </div>
+                <label class="checkbox-line"><input type="checkbox" id="rememberKey"> Remember this key in this browser (localStorage)</label>
+                <p class="hint">Create a key at platform.openai.com → API keys. Needs access to the Images API (gpt-image models).</p>
+            </div>
+        </section>
+
+        <!-- STEP 2 — STYLE + REFERENCE -->
+        <section class="card">
+            <div class="card-step">Step 2</div>
+            <div class="card-title">Brand Style &amp; Reference</div>
+
+            <div class="field">
+                <label for="styleGuide">Brand style guide (edit freely — this is prepended to every prompt)</label>
+                <textarea id="styleGuide" rows="6"></textarea>
+                <p class="hint">Reverse-engineered from the existing Ares Pantheon product photos so new shots stay consistent.</p>
+            </div>
+
+            <div class="field">
+                <label>Shot type</label>
+                <div class="chips" id="shotChips"></div>
+            </div>
+
+            <div class="field">
+                <label>Reference photos</label>
+                <div class="radio-group" id="refModeGroup">
+                    <label class="radio-option">
+                        <input type="radio" name="refMode" value="none" checked>
+                        <span><span class="ro-title">Text prompt only</span><br><span class="ro-desc">Fastest and cheapest. Consistency comes from the style guide text alone.</span></span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="refMode" value="site">
+                        <span><span class="ro-title">Match existing product photos</span><br><span class="ro-desc">Sends the two current Phalanx Tee photos as visual reference (uses the image-edit endpoint). Requires a gpt-image-* model.</span></span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="refMode" value="upload">
+                        <span><span class="ro-title">Upload my own reference photos</span><br><span class="ro-desc">Use up to 16 of your own images as reference instead.</span></span>
+                    </label>
+                </div>
+                <div class="ref-thumbs" id="refThumbs"></div>
+                <div id="uploadWrap">
+                    <input type="file" id="refUpload" accept="image/png,image/jpeg,image/webp" multiple>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 3 — PRODUCT + PROMPT -->
+        <section class="card">
+            <div class="card-step">Step 3</div>
+            <div class="card-title">New Product</div>
+            <div class="field">
+                <label for="productDesc">Describe the new garment</label>
+                <input type="text" id="productDesc" placeholder="e.g. matte black long-sleeve rash guard with gold trim on the cuffs">
+            </div>
+            <div class="field">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <label for="promptPreview" style="margin-bottom:0;">Final prompt (editable)</label>
+                    <button class="btn btn-ghost btn-sm" id="rebuildPromptBtn" type="button">↻ Rebuild from fields above</button>
+                </div>
+                <textarea id="promptPreview" rows="5" style="margin-top:8px;"></textarea>
+            </div>
+        </section>
+
+        <!-- STEP 4 — SETTINGS + GENERATE -->
+        <section class="card">
+            <div class="card-step">Step 4</div>
+            <div class="card-title">Generate</div>
+
+            <div class="two-col">
+                <div class="field">
+                    <label for="modelInput">Model</label>
+                    <input type="text" id="modelInput" list="modelList" value="gpt-image-1">
+                    <datalist id="modelList">
+                        <option value="gpt-image-1">
+                        <option value="gpt-image-1-mini">
+                        <option value="dall-e-3">
+                        <option value="dall-e-2">
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label for="countInput">Number of images</label>
+                    <input type="number" id="countInput" min="1" max="10" value="1">
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:4px;">
+                <div class="field">
+                    <label for="sizeSelect">Size</label>
+                    <select id="sizeSelect"></select>
+                </div>
+                <div class="field">
+                    <label for="qualitySelect">Quality</label>
+                    <select id="qualitySelect"></select>
+                </div>
+                <div class="field" id="backgroundField">
+                    <label for="backgroundSelect">Background</label>
+                    <select id="backgroundSelect">
+                        <option value="auto">Auto</option>
+                        <option value="opaque">Opaque</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
+                </div>
+                <div class="field" id="formatField">
+                    <label for="formatSelect">Output format</label>
+                    <select id="formatSelect">
+                        <option value="auto">Auto (PNG)</option>
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WebP</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top:22px;">
+                <button class="btn btn-primary" id="generateBtn" type="button">Generate Photos</button>
+            </div>
+
+            <div class="status" id="statusBox" role="status" aria-live="polite"></div>
+        </section>
+
+        <!-- RESULTS -->
+        <section class="card">
+            <div class="card-step">Result</div>
+            <div class="card-title">Generated Photos</div>
+            <div id="galleryEmpty" class="gallery-empty">Nothing generated yet.</div>
+            <div class="gallery" id="gallery"></div>
+        </section>
+
+        <footer class="pg-footer">
+            <b style="color:var(--gray-light)">Publishing a generated photo to the live site:</b>
+            <ol>
+                <li>Click <em>Download</em> on the photo you want to keep.</li>
+                <li>Move the downloaded file into <code>assets/images/</code> in this repo, using the suggested filename.</li>
+                <li>Click <em>Copy &lt;img&gt; tag</em> and paste it (or the file path) into the relevant product block in <code>index.html</code>, including its <code>data-images</code> list for the modal gallery.</li>
+                <li>Commit and push.</li>
+            </ol>
+        </footer>
+    </main>
+
+    <script>
+    (() => {
+        'use strict';
+
+        const STORE_KEY = 'aresPantheonPhotoGen';
+        const $ = (id) => document.getElementById(id);
+
+        const DEFAULT_STYLE = "Photorealistic editorial fashion-catalog photo of an athletic male fitness model in his mid-20s, tan skin, short tousled dark hair, wearing a slim raglan-sleeve compression t-shirt. Shot inside a moody, modern dark-toned gym: black power racks, mirrored walls, industrial overhead lighting with dramatic falloff and soft shadows, blurred gym equipment reflected in the mirrors. Portrait orientation, shallow depth of field, framed from the waist up, confident relaxed pose, looking slightly off-camera, thin silver chain necklace. Natural skin texture, realistic fabric folds and stitching detail. A minimal white Spartan/Corinthian-helmet crest logo appears on the garment as described below. High-end streetwear catalog quality, no visible text or watermark other than the logo/print described.";
+
+        const SHOT_TYPES = [
+            { id: 'front', label: 'Front — Chest Logo', clause: "Front view: the Spartan helmet crest logo is printed small and centered on the upper-left chest." },
+            { id: 'back', label: 'Back — Full Print', clause: "Back view, model's back to camera, head turned slightly to the side: the Spartan helmet crest is centered on the upper back with a short line of vertical text printed beneath it." },
+            { id: 'detail', label: 'Detail Close-Up', clause: "Extreme close-up crop on the garment's logo/print area, fabric texture and print detail sharply in focus, model's face out of frame." },
+            { id: 'lifestyle', label: 'Lifestyle / Action', clause: "Full-body action shot of the model mid-exercise (e.g. racking a barbell), same gym environment, dynamic pose, background slightly motion-blurred." },
+            { id: 'flatlay', label: 'Flat Lay', clause: "Overhead flat-lay product shot of the garment alone with no model, neatly arranged on a dark textured surface, soft even studio lighting, no gym background." }
+        ];
+
+        const SIZE_OPTIONS = {
+            gptimage: [['auto','Auto'],['1024x1024','Square 1024×1024'],['1024x1536','Portrait 1024×1536'],['1536x1024','Landscape 1536×1024']],
+            dalle3:   [['1024x1024','Square 1024×1024'],['1024x1792','Portrait 1024×1792'],['1792x1024','Landscape 1792×1024']],
+            dalle2:   [['1024x1024','1024×1024'],['512x512','512×512'],['256x256','256×256']]
+        };
+        const QUALITY_OPTIONS = {
+            gptimage: [['auto','Auto'],['low','Low'],['medium','Medium'],['high','High']],
+            dalle3:   [['standard','Standard'],['hd','HD']],
+            dalle2:   null
+        };
+
+        let state = {
+            styleGuide: DEFAULT_STYLE,
+            shotType: 'front',
+            refMode: 'none',
+            model: 'gpt-image-1',
+        };
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORE_KEY);
+                if (raw) Object.assign(state, JSON.parse(raw));
+            } catch (e) { /* ignore corrupt storage */ }
+            try {
+                if (localStorage.getItem(STORE_KEY + '.rememberKey') === '1') {
+                    const k = localStorage.getItem(STORE_KEY + '.key');
+                    if (k) { $('apiKey').value = k; $('rememberKey').checked = true; }
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        function saveState() {
+            const toSave = {
+                styleGuide: $('styleGuide').value,
+                shotType: state.shotType,
+                refMode: state.refMode,
+                model: $('modelInput').value,
+            };
+            try { localStorage.setItem(STORE_KEY, JSON.stringify(toSave)); } catch (e) { /* storage may be unavailable */ }
+        }
+
+        function saveKeyIfRemembered() {
+            try {
+                if ($('rememberKey').checked) {
+                    localStorage.setItem(STORE_KEY + '.rememberKey', '1');
+                    localStorage.setItem(STORE_KEY + '.key', $('apiKey').value);
+                } else {
+                    localStorage.removeItem(STORE_KEY + '.rememberKey');
+                    localStorage.removeItem(STORE_KEY + '.key');
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        function slugify(text) {
+            return (text || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60) || 'photo';
+        }
+
+        function modelFamily(name) {
+            const m = (name || '').trim().toLowerCase();
+            if (m.startsWith('dall-e-3')) return 'dalle3';
+            if (m.startsWith('dall-e-2')) return 'dalle2';
+            return 'gptimage'; // gpt-image-1, gpt-image-1-mini, and any future gpt-image-* default here
+        }
+
+        function populateSelect(sel, options) {
+            sel.innerHTML = '';
+            options.forEach(([value, label]) => {
+                const opt = document.createElement('option');
+                opt.value = value; opt.textContent = label;
+                sel.appendChild(opt);
+            });
+        }
+
+        function refreshControlsForModel() {
+            const family = modelFamily($('modelInput').value);
+            populateSelect($('sizeSelect'), SIZE_OPTIONS[family]);
+
+            const qOpts = QUALITY_OPTIONS[family];
+            $('qualitySelect').closest('.field').style.display = qOpts ? '' : 'none';
+            if (qOpts) populateSelect($('qualitySelect'), qOpts);
+
+            const isGptImage = family === 'gptimage';
+            $('backgroundField').style.display = isGptImage ? '' : 'none';
+            $('formatField').style.display = isGptImage ? '' : 'none';
+
+            const countInput = $('countInput');
+            if (family === 'dalle3') { countInput.value = 1; countInput.max = 1; countInput.disabled = true; }
+            else { countInput.max = 10; countInput.disabled = false; }
+
+            // Reference-photo mode needs the multi-image edit endpoint (gpt-image family).
+            document.querySelectorAll('input[name="refMode"]').forEach(r => {
+                if (r.value !== 'none') r.disabled = !isGptImage;
+            });
+            if (!isGptImage && state.refMode !== 'none') {
+                setRefMode('none');
+            }
+        }
+
+        function renderShotChips() {
+            const wrap = $('shotChips');
+            wrap.innerHTML = '';
+            SHOT_TYPES.forEach(st => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'chip' + (st.id === state.shotType ? ' active' : '');
+                chip.textContent = st.label;
+                chip.addEventListener('click', () => {
+                    state.shotType = st.id;
+                    renderShotChips();
+                    saveState();
+                });
+                wrap.appendChild(chip);
+            });
+        }
+
+        function currentShotClause() {
+            const st = SHOT_TYPES.find(s => s.id === state.shotType);
+            return st ? st.clause : '';
+        }
+
+        function buildPrompt() {
+            const parts = [$('styleGuide').value.trim(), currentShotClause(), $('productDesc').value.trim() ? ('Garment: ' + $('productDesc').value.trim() + '.') : ''];
+            $('promptPreview').value = parts.filter(Boolean).join(' ');
+        }
+
+        function setRefMode(mode) {
+            state.refMode = mode;
+            document.querySelectorAll('input[name="refMode"]').forEach(r => { r.checked = (r.value === mode); });
+            $('uploadWrap').style.display = mode === 'upload' ? 'block' : 'none';
+            renderRefThumbs();
+            saveState();
+        }
+
+        async function renderRefThumbs() {
+            const wrap = $('refThumbs');
+            wrap.innerHTML = '';
+            if (state.refMode === 'site') {
+                ['../assets/images/product-compression-front.jpg', '../assets/images/product-compression-back.jpg'].forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    wrap.appendChild(img);
+                });
+            } else if (state.refMode === 'upload') {
+                const files = $('refUpload').files;
+                Array.from(files || []).forEach(f => {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(f);
+                    wrap.appendChild(img);
+                });
+            }
+        }
+
+        function setStatus(kind, message) {
+            const box = $('statusBox');
+            box.className = 'status show' + (kind ? ' ' + kind : '');
+            box.innerHTML = message;
+        }
+        function clearStatus() {
+            const box = $('statusBox');
+            box.className = 'status';
+            box.innerHTML = '';
+        }
+
+        async function siteReferenceFiles() {
+            const urls = [
+                ['../assets/images/product-compression-front.jpg', 'reference-front.jpg'],
+                ['../assets/images/product-compression-back.jpg', 'reference-back.jpg'],
+            ];
+            const files = [];
+            for (const [url, name] of urls) {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Could not load site reference photo: ' + url);
+                const blob = await res.blob();
+                files.push(new File([blob], name, { type: blob.type || 'image/jpeg' }));
+            }
+            return files;
+        }
+
+        function extFor(format) {
+            if (format === 'jpeg') return 'jpg';
+            if (format === 'webp') return 'webp';
+            return 'png';
+        }
+        function mimeFor(format) {
+            if (format === 'jpeg') return 'image/jpeg';
+            if (format === 'webp') return 'image/webp';
+            return 'image/png';
+        }
+
+        function base64ToBlob(b64, mime) {
+            const byteChars = atob(b64);
+            const byteNumbers = new Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+            return new Blob([new Uint8Array(byteNumbers)], { type: mime });
+        }
+
+        function addGalleryItem(blobOrUrl, isBlob, ext) {
+            $('galleryEmpty').style.display = 'none';
+            const gallery = $('gallery');
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+
+            const img = document.createElement('img');
+            img.src = isBlob ? URL.createObjectURL(blobOrUrl) : blobOrUrl;
+            item.appendChild(img);
+
+            const body = document.createElement('div');
+            body.className = 'gallery-item-body';
+
+            const suggested = 'product-' + slugify($('productDesc').value) + '-' + state.shotType + '-' + Date.now().toString().slice(-4) + '.' + ext;
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = suggested;
+            body.appendChild(nameInput);
+
+            const actions = document.createElement('div');
+            actions.className = 'gallery-item-actions';
+
+            const dl = document.createElement('a');
+            dl.className = 'btn btn-ghost btn-sm';
+            dl.textContent = 'Download';
+            if (isBlob) {
+                dl.href = img.src;
+                dl.download = nameInput.value;
+                nameInput.addEventListener('input', () => { dl.download = nameInput.value; });
+            } else {
+                dl.href = blobOrUrl;
+                dl.target = '_blank';
+                dl.rel = 'noopener';
+                dl.title = 'This is a temporary OpenAI URL — right-click → Save Image As, it will expire soon.';
+            }
+            actions.appendChild(dl);
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'btn btn-ghost btn-sm';
+            copyBtn.textContent = 'Copy <img> tag';
+            copyBtn.addEventListener('click', async () => {
+                const alt = ($('productDesc').value.trim() || 'Ares Pantheon') + ' — ' + state.shotType;
+                const snippet = '<img src="assets/images/' + nameInput.value + '" alt="' + alt.replace(/"/g, '') + '" loading="lazy">';
+                try {
+                    await navigator.clipboard.writeText(snippet);
+                    copyBtn.textContent = 'Copied ✓';
+                } catch (e) {
+                    window.prompt('Copy this snippet:', snippet);
+                }
+                setTimeout(() => { copyBtn.textContent = 'Copy <img> tag'; }, 1600);
+            });
+            actions.appendChild(copyBtn);
+
+            body.appendChild(actions);
+            item.appendChild(body);
+            gallery.prepend(item);
+        }
+
+        async function parseErrorResponse(res) {
+            let msg = 'Request failed (HTTP ' + res.status + ').';
+            try {
+                const data = await res.json();
+                if (data && data.error && data.error.message) msg = data.error.message;
+            } catch (e) { /* not JSON */ }
+            if (res.status === 401) msg = 'Invalid or missing API key. ' + msg;
+            if (res.status === 429) msg = 'Rate limit or quota exceeded. ' + msg;
+            return msg;
+        }
+
+        async function generate() {
+            const apiKey = $('apiKey').value.trim();
+            if (!apiKey) { setStatus('error', 'Enter your OpenAI API key first.'); return; }
+            const prompt = $('promptPreview').value.trim();
+            if (!prompt) { setStatus('error', 'The prompt is empty — fill in Step 2/3 or rebuild the prompt.'); return; }
+
+            saveKeyIfRemembered();
+            saveState();
+
+            const model = $('modelInput').value.trim() || 'gpt-image-1';
+            const family = modelFamily(model);
+            const size = $('sizeSelect').value;
+            const quality = $('qualitySelect').value;
+            const background = $('backgroundSelect').value;
+            const outputFormat = $('formatSelect').value;
+            const n = Math.max(1, Math.min(10, parseInt($('countInput').value, 10) || 1));
+
+            const genBtn = $('generateBtn');
+            genBtn.disabled = true;
+            setStatus('loading', '<span class="spinner"></span> Generating — this can take 10–60s...');
+
+            try {
+                let res;
+                if (state.refMode === 'none') {
+                    const body = { model, prompt, n, size };
+                    if (quality && quality !== 'auto') body.quality = quality;
+                    if (family === 'gptimage') {
+                        if (background && background !== 'auto') body.background = background;
+                        if (outputFormat && outputFormat !== 'auto') body.output_format = outputFormat;
+                    }
+                    res = await fetch('https://api.openai.com/v1/images/generations', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                } else {
+                    const form = new FormData();
+                    form.append('model', model);
+                    form.append('prompt', prompt);
+                    form.append('n', String(n));
+                    if (size) form.append('size', size);
+                    if (quality && quality !== 'auto') form.append('quality', quality);
+
+                    let files = [];
+                    if (state.refMode === 'site') {
+                        files = await siteReferenceFiles();
+                    } else {
+                        files = Array.from($('refUpload').files || []);
+                        if (!files.length) throw new Error('Choose at least one reference photo to upload, or switch to "Text prompt only".');
+                    }
+                    files.forEach(f => form.append('image[]', f, f.name));
+
+                    res = await fetch('https://api.openai.com/v1/images/edits', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + apiKey },
+                        body: form
+                    });
+                }
+
+                if (!res.ok) {
+                    const msg = await parseErrorResponse(res);
+                    setStatus('error', msg);
+                    return;
+                }
+
+                const json = await res.json();
+                const items = json.data || [];
+                if (!items.length) { setStatus('error', 'No images returned.'); return; }
+
+                const ext = extFor(outputFormat === 'auto' ? 'png' : outputFormat);
+                items.forEach(entry => {
+                    if (entry.b64_json) {
+                        const blob = base64ToBlob(entry.b64_json, mimeFor(outputFormat === 'auto' ? 'png' : outputFormat));
+                        addGalleryItem(blob, true, ext);
+                    } else if (entry.url) {
+                        addGalleryItem(entry.url, false, 'png');
+                    }
+                });
+                setStatus('ok', 'Generated ' + items.length + ' image' + (items.length > 1 ? 's' : '') + '. Scroll down to review, download, and publish.');
+            } catch (err) {
+                setStatus('error', (err && err.message) ? err.message : 'Something went wrong calling the API.');
+            } finally {
+                genBtn.disabled = false;
+            }
+        }
+
+        function init() {
+            loadState();
+            $('styleGuide').value = state.styleGuide || DEFAULT_STYLE;
+            $('modelInput').value = state.model || 'gpt-image-1';
+            renderShotChips();
+            refreshControlsForModel();
+            setRefMode(state.refMode || 'none');
+            buildPrompt();
+
+            $('toggleKeyBtn').addEventListener('click', () => {
+                const el = $('apiKey');
+                el.type = el.type === 'password' ? 'text' : 'password';
+                $('toggleKeyBtn').textContent = el.type === 'password' ? 'Show' : 'Hide';
+            });
+            $('forgetKeyBtn').addEventListener('click', () => {
+                $('apiKey').value = '';
+                $('rememberKey').checked = false;
+                try {
+                    localStorage.removeItem(STORE_KEY + '.rememberKey');
+                    localStorage.removeItem(STORE_KEY + '.key');
+                } catch (e) { /* ignore */ }
+            });
+            $('rememberKey').addEventListener('change', saveKeyIfRemembered);
+            $('apiKey').addEventListener('input', () => { if ($('rememberKey').checked) saveKeyIfRemembered(); });
+
+            $('modelInput').addEventListener('input', () => { refreshControlsForModel(); saveState(); });
+            $('rebuildPromptBtn').addEventListener('click', buildPrompt);
+            $('styleGuide').addEventListener('change', saveState);
+            document.querySelectorAll('input[name="refMode"]').forEach(r => {
+                r.addEventListener('change', (e) => setRefMode(e.target.value));
+            });
+            $('refUpload').addEventListener('change', renderRefThumbs);
+            $('generateBtn').addEventListener('click', generate);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
+</body>
+</html>
