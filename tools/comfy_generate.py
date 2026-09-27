@@ -11,9 +11,9 @@ Examples:
         --name product-new-tee --width 1024 --height 1280
     python3 tools/comfy_generate.py "spartan helmet on a beach at sunset" --preset flux-schnell -n 4
 
-ComfyUI must be running first. The manual install listens on port 8188;
-the ComfyUI Desktop app uses 8000 (pass --url http://127.0.0.1:8000 or set
-COMFY_URL).
+ComfyUI must be running first. The script finds it on its usual ports
+(8000 for the Desktop app, 8188 for a manual install); pass --url or set
+COMFY_URL to use a different address.
 """
 
 import argparse
@@ -111,6 +111,17 @@ def slugify(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:50] or "image"
 
 
+def find_server():
+    """Return the first local port where ComfyUI answers, or None."""
+    for url in ("http://127.0.0.1:8000", "http://127.0.0.1:8188"):
+        try:
+            api(url, "/system_stats")
+            return url
+        except (urllib.error.URLError, OSError, ValueError):
+            continue
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("prompt", nargs="?", help="what to generate")
@@ -125,10 +136,15 @@ def main():
     parser.add_argument("--cfg", type=float)
     parser.add_argument("--name", help="output filename stem (default: from the prompt)")
     parser.add_argument("--out", default=DEFAULT_OUT_DIR, help="output directory")
-    parser.add_argument("--url", default=os.environ.get("COMFY_URL", "http://127.0.0.1:8188"))
+    parser.add_argument("--url", default=os.environ.get("COMFY_URL"), help="ComfyUI address (default: auto-detect)")
     parser.add_argument("--timeout", type=int, default=600, help="seconds to wait for the job")
     parser.add_argument("--list-models", action="store_true", help="list installed checkpoints and exit")
     args = parser.parse_args()
+
+    if not args.url:
+        args.url = find_server()
+        if not args.url:
+            sys.exit("ComfyUI isn't running. Open the ComfyUI app, wait until it has loaded, then try again.")
 
     try:
         if args.list_models:
@@ -191,7 +207,7 @@ def main():
     except urllib.error.URLError as e:
         sys.exit(
             f"Could not reach ComfyUI at {args.url} ({e.reason}).\n"
-            "Start ComfyUI first. The Desktop app uses port 8000: add --url http://127.0.0.1:8000"
+            "Open the ComfyUI app, wait until it has loaded, then try again."
         )
 
 

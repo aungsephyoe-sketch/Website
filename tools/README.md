@@ -46,48 +46,59 @@ publicly.
 
 ---
 
-# Free local generation with ComfyUI
+# Free image generation with ComfyUI
 
-`comfy_generate.py` sends a text-to-image job to a **ComfyUI** server running
-on your own computer and saves the results into `assets/images/`. There is no
-API key and no per-image cost; it uses your GPU. It needs Python 3 only (no
-pip packages).
+Makes images on your own computer, for free. Claude does the typing; you
+just ask for pictures. `comfy_generate.py` is the script Claude runs.
 
-## One-time setup
+## Setup (one time, about 30 minutes)
 
-1. **Install ComfyUI.** Easiest: the ComfyUI Desktop app from
-   <https://www.comfy.org/download> (Windows with an NVIDIA GPU, or a Mac with
-   Apple Silicon). On Linux, clone <https://github.com/comfyanonymous/ComfyUI>
-   and follow its README.
-2. **Download one model** into `ComfyUI/models/checkpoints/`:
-   - **SDXL** (≈8 GB VRAM or a 16 GB+ Mac): `sd_xl_base_1.0.safetensors` from
-     <https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0>
-   - **FLUX.1 [schnell]** (≈12 GB+ VRAM, better text and hands, very fast):
-     `flux1-schnell-fp8.safetensors` from
-     <https://huggingface.co/Comfy-Org/flux1-schnell>
-3. **Start ComfyUI.** The Desktop app listens on port **8000**; a manual install
-   listens on **8188** (the script's default). Set this once for the Desktop app:
-   `export COMFY_URL=http://127.0.0.1:8000`
-4. Check it works: `python3 tools/comfy_generate.py --list-models`
+**Step 1: Install ComfyUI.**
+Go to <https://www.comfy.org/download>, download the app for your computer,
+and install it like any other app. Accept the default settings.
 
-## Usage
+**Step 2: Get a model (the image "brain").**
+In ComfyUI, click **Templates** and pick **SDXL**. When it says models are
+missing, click **Download** and wait for it to finish. It's a big download
+(several GB).
 
-```bash
-# SDXL (default preset)
-python3 tools/comfy_generate.py "black oversized tee with gold greek helmet print, flat lay on dark marble, studio lighting" \
-    --name product-new-tee --width 1024 --height 1280
+**Step 3: Make a test picture.**
+Still in ComfyUI, click **Run**. If an image appears, ComfyUI works. Leave
+the app open.
 
-# FLUX schnell, 4 variations
-python3 tools/comfy_generate.py "athlete in a black compression shirt on a beach at golden hour" \
-    --preset flux-schnell -n 4
-```
+**Step 4: Install Claude Code.**
+Open **Terminal** (Mac) or **PowerShell** (Windows), paste one line, and
+press Enter:
 
-Useful flags: `--seed` (repeat a result), `--negative`, `--steps`, `--cfg`,
-`--checkpoint` (any other model file you've installed), `--out`.
+- Mac: `curl -fsSL https://claude.ai/install.sh | bash`
+- Windows: `irm https://claude.ai/install.ps1 | iex`
 
-## Using it with Claude Code
+Close the window and open a new one.
 
-Run Claude Code **on the same computer as ComfyUI** (a cloud session can't
-reach your machine's `localhost`). Then just ask, e.g. *"make a lifestyle
-photo of the Man of God tee for the hero section"*; Claude writes the prompt,
-runs this script, looks at the image, and refines it if needed.
+**Step 5: Start Claude Code.**
+In the new window, type `claude` and press Enter. Log in with your Claude
+account when it asks.
+
+**Step 6: Let Claude set up the website.**
+Type this to Claude:
+
+> Download my GitHub repo aungsephyoe-sketch/Website, switch to the branch
+> claude/eager-bell-dindwd, and check that tools/comfy_generate.py can
+> connect to ComfyUI.
+
+## Every time you want images
+
+1. Open the ComfyUI app.
+2. Open Terminal or PowerShell, type `claude`, and press Enter.
+3. Ask for what you want, for example:
+   > Make a photo of a black t-shirt with a gold Greek helmet print on dark
+   > marble. Make 4 versions.
+
+The images are saved in `assets/images/`. Tell Claude which one you like and
+where it should go on the site.
+
+## If something goes wrong
+
+- **"ComfyUI isn't running"**: open the ComfyUI app and wait for it to load.
+- **Very slow, or "out of memory"**: ask Claude to "make smaller images".
+- Anything else: paste the error to Claude and ask it to fix it.
