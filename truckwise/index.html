@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TruckWise</title>
+  <meta name="description" content="TruckWise: identify your truck by VIN, plan maintenance, track repairs and know your true monthly cost of ownership. For Class 1–8 commercial trucks.">
+  <meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232563eb'/%3E%3Cpath d='M7 11h11v9H7zM18 14h4l3 3v3h-7' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='11' cy='21.5' r='2' fill='%23fff'/%3E%3Ccircle cx='21' cy='21.5' r='2' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+      <main id="view" class="view" tabindex="-1"></main>
+    </div>
+    <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+  </div>
+  <noscript><p style="padding:24px">TruckWise needs JavaScript enabled.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
