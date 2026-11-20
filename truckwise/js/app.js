@@ -1,13 +1,13 @@
 import { store, uid } from './store.js';
 import {
   CLASSES, CONFIG_GROUPS, FUEL_TYPES, TRANSMISSIONS, DRIVETRAINS, DUTY_CYCLES, MILEAGE_PRESETS, PLANS,
-  regionForZip, profileFor, PROFILE_LABELS, DATA_SOURCE_NOTE, FUEL_REFERENCE_DATE, complianceFor,
+  regionForZip, profileFor, PROFILE_LABELS, EIA_AREA, REGIONS, DATA_SOURCE_NOTE, FUEL_REFERENCE_DATE, complianceFor,
 } from './data.js';
 import {
   validateVin, modelYearFromVin, missingFields, scheduleFor, overallStatus, healthBySystem, forecast, ownership,
-  notificationsFor, fmtMoney, fmtNum, fmtRange, STATUS, applicableItems, intervalFor, monthsFor, monthlyMiles,
+  notificationsFor, liveFuel, fmtMoney, fmtNum, fmtRange, STATUS, applicableItems, intervalFor, monthsFor, monthlyMiles,
 } from './engine.js';
-import { decodeVin, fetchRecalls } from './api.js';
+import { decodeVin, fetchRecalls, fetchEiaWeekly } from './api.js';
 import {
   actions, submits, lives, setRerender, rerender, go, esc, $, $$, icon, pill, openModal, closeModal, toast, confirmBox,
   formData, num, field, input, select, emptyState,
@@ -69,7 +69,7 @@ function shell(route) {
       <select data-live-select="active-truck">${s.trucks.map((t) => `<option value="${t.id}" ${active?.id === t.id ? 'selected' : ''}>${esc(truckName(t))}</option>`).join('')}
       <option value="__new">+ Add a truck</option></select></label>` : '<span class="grow"></span>'}
     <a href="#/alerts" class="icon-btn" aria-label="Reminders (${notes.length})">${icon('bell')}${notes.length ? `<b class="dot">${notes.length > 9 ? '9+' : notes.length}</b>` : ''}</a>
-    <button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon('eye')}</button>
+    <button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon('moon')}</button>
     <button class="icon-btn mobile-only" data-action="more-menu" aria-label="More">${icon('more')}</button>`;
 }
 
@@ -332,6 +332,7 @@ submits['ob-finish'] = (form) => {
   }
   store.addTruck({ ...draft, records });
   ob = null;
+  refreshFuel().then((r) => { if (r.ok) rerender(); });
   toast('Truck added. Your maintenance schedule is ready.');
   go('#/dashboard');
 };
@@ -381,7 +382,7 @@ function dashboardView({ truck }) {
   <section class="widgets">
     ${widget('Next maintenance due', next ? `${esc(next.item.name)}` : 'Add history to calculate', next ? `${next.status === 'overdue' ? 'Overdue by' : 'In'} ${fmtNum(Math.abs(next.remaining))} mi · ${fmtNum(next.dueMiles)} mi` : `${unknownCount} items with no record`, next ? next.status : 'unknown', '#/maintenance', 'wrench')}
     ${widget('Overdue maintenance', String(overdue.length), overdue.length ? overdue.slice(0, 2).map((o) => esc(o.item.name)).join(', ') : 'Nothing overdue', overdue.length ? 'overdue' : 'ok', '#/maintenance', 'alert')}
-    ${widget('Monthly fuel', fmtMoney(fuelLine?.value), `${fmtNum(own.miles)} mi · ${own.mpg} MPG · ${fmtMoney(own.price, 2)}/gal${fuelLine?.estimated ? ' (est.)' : ''}`, null, '#/costs', 'dollar')}
+    ${widget(`Monthly ${own.fuel.label.toLowerCase()}`, fmtMoney(fuelLine?.value), `${fmtNum(own.miles)} mi · ${own.mpg} ${own.fuel.econLabel} · ${fmtMoney(own.price, own.fuel.unit === 'kWh' ? 3 : 2)}/${own.fuel.unit}<br>${esc(own.fuel.source)}`, null, '#/costs', 'dollar')}
     ${widget('Monthly ownership cost', fmtMoney(own.total), `${fmtMoney(own.perMile, 2)} per mile${own.lines.some((l) => l.estimated) ? ' · includes estimates' : ''}`, null, '#/costs', 'truck')}
     ${widget('Upcoming 12-month maintenance', fmtRange(fc.total), `Save ${fmtRange(fc.monthlyReserve)} / month`, null, '#/maintenance/forecast', 'calendar')}
     ${widget('Maintenance spending', fmtMoney(spent), `${fmtMoney(spentYtd)} this year · ${truck.records?.length || 0} records`, null, '#/maintenance/history', 'report')}
@@ -524,6 +525,7 @@ submits['save-truck'] = (form) => {
     overrides, disabledItems: items.filter((i) => !track.has(i.id)).map((i) => i.id),
   });
   toast('Truck saved. Schedule and costs updated.'); rerender();
+  refreshFuel().then((r) => { if (r.ok) rerender(); });
 };
 actions['delete-truck'] = async (el) => {
   if (!(await confirmBox('This truck, its maintenance history, inspections and documents will be permanently deleted from this device.', 'Delete truck'))) return;
@@ -536,11 +538,12 @@ actions['redecode'] = async (el) => {
   el.disabled = true; el.innerHTML = '<span class="spinner"></span> Decoding…';
   try {
     const res = await decodeVin(v.vin);
+    const SKIP = ['decodeOk', 'warnings', 'errorCode', 'errorText', 'decodedAt', 'source'];
     const fill = {};
-    for (const [k, val] of Object.entries(res)) if (val !== '' && val != null && (t[k] == null || t[k] === '')) fill[k] = val;
-    fill.decodedAt = res.decodedAt; fill.source = res.source; fill.gvwrText = res.gvwrText || t.gvwrText; fill.plant = res.plant || t.plant;
-    store.updateTruck(t.id, fill);
-    toast(`Decoded. Filled ${Object.keys(fill).length - 4 > 0 ? Object.keys(fill).length - 4 : 0} empty field(s); your entries were kept.`);
+    for (const [k, val] of Object.entries(res)) if (!SKIP.includes(k) && val !== '' && val != null && (t[k] == null || t[k] === '')) fill[k] = val;
+    const filled = Object.keys(fill).length;
+    store.updateTruck(t.id, { ...fill, decodedAt: res.decodedAt, source: res.source });
+    toast(filled ? `Decoded. Filled ${filled} empty field(s); your entries were kept.` : 'Decoded. Nothing new \u2014 your entries were kept.');
   } catch { toast('Could not reach the VIN database. Try again later.', 'warn'); }
   rerender();
 };
@@ -605,6 +608,15 @@ function settingsView() {
         <input name="key" type="password" autocomplete="off" placeholder="${s.claudeKey ? 'Key saved ••••' + esc(s.claudeKey.slice(-4)) : 'sk-ant-…'}" aria-label="Anthropic API key" class="grow">
         <button class="btn btn-primary">Save key</button>${s.claudeKey ? '<button type="button" class="btn btn-ghost danger-text" data-action="remove-key">Remove</button>' : ''}
       </form></section>
+    <section class="card card-pad"><h2>Live fuel prices</h2>
+      <p class="muted">Without this, TruckWise uses state-average reference prices for the truck\u2019s ZIP code. With a free U.S. Energy Information Administration (EIA) API key, it loads the official <strong>weekly average diesel and gasoline prices</strong> for your region and refreshes them every few days. Your own pump price, when entered on the Costs page, always wins.</p>
+      <p class="muted small">Get a free key in about a minute at <a class="link" href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener">eia.gov/opendata</a>. It\u2019s stored only in this browser.</p>
+      <form data-submit="save-eia" class="row gap wrap">
+        <input name="key" type="password" autocomplete="off" placeholder="${s.eiaKey ? 'Key saved \u2022\u2022\u2022\u2022' + esc(s.eiaKey.slice(-4)) : 'EIA API key'}" aria-label="EIA API key" class="grow">
+        <button class="btn btn-primary">Save & load prices</button>${s.eiaKey ? '<button type="button" class="btn btn-secondary" data-action="refresh-fuel">Refresh now</button><button type="button" class="btn btn-ghost danger-text" data-action="remove-eia">Remove</button>' : ''}
+      </form>
+      ${fuelStatusHtml()}
+    </section>
     <section class="card card-pad"><h2>Your data</h2>
       <p class="muted">Trucks, records and settings are saved in this browser. Back them up regularly, or move them to another device with export/import. (Uploaded files stay on this device.)</p>
       <div class="row gap wrap"><button class="btn btn-secondary" data-action="export">${icon('upload', 18)} Export backup</button>
@@ -614,7 +626,7 @@ function settingsView() {
       <ul class="list">
         <li class="list-static"><div><strong>VIN decoding & recalls</strong><div class="muted small">NHTSA vPIC and Recalls APIs (public U.S. government data), queried live from your browser.</div></div></li>
         <li class="list-static"><div><strong>Maintenance intervals & costs</strong><div class="muted small">${esc(DATA_SOURCE_NOTE)}</div></div></li>
-        <li class="list-static"><div><strong>Fuel prices</strong><div class="muted small">Regional reference values (as of ${FUEL_REFERENCE_DATE}). Enter your actual pump price on the Costs page for accurate numbers. Live ZIP-level prices require a commercial fuel-price provider and are planned for the hosted version.</div></div></li>
+        <li class="list-static"><div><strong>Fuel prices</strong><div class="muted small">In order of priority: your own pump price; live EIA weekly regional averages (with an EIA key); state-average reference prices for the truck\u2019s ZIP (as of ${FUEL_REFERENCE_DATE}). Station-level and along-the-route prices need a commercial fuel-price provider and are planned for the hosted version.</div></div></li>
         <li class="list-static"><div><strong>Compliance</strong><div class="muted small">FMCSA regulations (49 CFR Parts 393 & 396). Always check current rules and your state’s requirements.</div></div></li>
       </ul></section>`;
 }
@@ -672,8 +684,59 @@ async function autoRecalls() {
 /* ------------------------------------------------------------------ */
 /* Boot                                                                */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Live fuel prices (EIA)                                              */
+/* ------------------------------------------------------------------ */
+function loadCachedFuel() {
+  const cache = store.get().fuelLive || {};
+  for (const k of Object.keys(liveFuel)) delete liveFuel[k];
+  if (!store.settings().eiaKey) return;
+  // Ignore prices older than 21 days: better to fall back to state averages than show stale "live" data.
+  for (const [k, v] of Object.entries(cache)) if (v?.period && Date.now() - new Date(v.period) < 21 * 86400000) liveFuel[k] = v;
+}
+async function refreshFuel(force = false) {
+  const key = store.settings().eiaKey;
+  if (!key) return { ok: 0, failed: 0 };
+  const regions = new Set(store.get().trucks.map((t) => regionForZip(t.zip).key));
+  if (!regions.size) regions.add('US');
+  let ok = 0; let failed = 0; let lastErr = '';
+  for (const r of regions) {
+    const cached = store.get().fuelLive?.[r];
+    if (!force && cached && Date.now() - new Date(cached.fetchedAt) < 3 * 86400000) continue;
+    try {
+      const v = await fetchEiaWeekly(key, EIA_AREA[r] || 'NUS');
+      store.update((s) => { s.fuelLive = { ...(s.fuelLive || {}), [r]: v }; });
+      ok++;
+    } catch (e) { failed++; lastErr = e.message; }
+  }
+  loadCachedFuel();
+  return { ok, failed, lastErr };
+}
+function fuelStatusHtml() {
+  const s = store.settings();
+  if (!s.eiaKey) return '';
+  const rows = Object.entries(store.get().fuelLive || {});
+  if (!rows.length) return '<p class="muted small">No prices loaded yet.</p>';
+  return `<ul class="list">${rows.map(([k, v]) => `<li class="list-static"><div class="grow"><strong>${esc(REGIONS[k]?.label || k)}</strong><div class="muted small">Week of ${esc(v.period)}</div></div>
+    <span>Diesel <strong>${v.diesel ? fmtMoney(v.diesel, 3) : '\u2014'}</strong></span><span>Gasoline <strong>${v.gas ? fmtMoney(v.gas, 3) : '\u2014'}</strong></span></li>`).join('')}</ul>`;
+}
+submits['save-eia'] = async (form) => {
+  const k = formData(form).key;
+  if (k) store.setSetting('eiaKey', k);
+  if (!store.settings().eiaKey) return;
+  toast('Loading weekly fuel prices\u2026');
+  const r = await refreshFuel(true);
+  if (r.ok) toast(`Loaded live prices for ${r.ok} region(s).`);
+  else toast(`Could not load EIA prices${r.lastErr ? ': ' + r.lastErr : ''}. Check the key.`, 'warn');
+  rerender();
+};
+actions['refresh-fuel'] = async () => { const r = await refreshFuel(true); toast(r.ok ? 'Fuel prices updated.' : `Update failed${r.lastErr ? ': ' + r.lastErr : ''}.`, r.ok ? 'ok' : 'warn'); rerender(); };
+actions['remove-eia'] = () => { store.setSetting('eiaKey', ''); store.update((s) => { s.fuelLive = {}; }); loadCachedFuel(); toast('EIA key removed. Using state averages.'); rerender(); };
+
 store.subscribe(() => { /* views re-render explicitly */ });
+loadCachedFuel();
 lastRoute = location.hash.split('/')[1] || '';
 render();
 maybeBrowserNotify();
+refreshFuel().then((r) => { if (r.ok) rerender(); });
 setTimeout(() => autoRecalls().then(() => { if (['dashboard', 'alerts', 'recalls'].includes(document.body.dataset.route)) rerender(); }), 1500);

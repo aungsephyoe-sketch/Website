@@ -134,3 +134,64 @@ test('quote comparison', () => {
   assert.equal(E.compareQuote(300, [250, 450]).key, 'fair');
   assert.equal(E.compareQuote(900, [250, 450]).key, 'veryhigh');
 });
+
+/* ---------------- Regression tests for fixes ---------------- */
+import { localAnswer } from '../js/assistant.js';
+
+test('fuel price: state average by ZIP, diesel vs gasoline, priority order', () => {
+  const tx = { class: 8, fuel: 'Diesel', zip: '75201' };
+  let fi = E.fuelInfo(tx, {});
+  assert.equal(fi.kind, 'diesel'); assert.equal(fi.price, 3.45); assert.match(fi.source, /TX state average/);
+  const ca = E.fuelInfo({ class: 8, fuel: 'Diesel', zip: '90210' }, {});
+  assert.equal(ca.price, 5.2);
+  const gas = E.fuelInfo({ class: 2, fuel: 'Gasoline', zip: '75201' }, {});
+  assert.equal(gas.kind, 'gasoline'); assert.equal(gas.price, 2.75);
+  // Blank fuel on a Class 8 is diesel, never gasoline
+  assert.equal(E.fuelInfo({ class: 8, zip: '75201' }, {}).kind, 'diesel');
+  assert.equal(E.fuelInfo({ class: 2, zip: '75201' }, {}).kind, 'gasoline');
+  // Live EIA price beats the state average; user's price beats both
+  E.liveFuel.GC = { diesel: 3.611, gas: 2.9, period: '2026-11-16' };
+  fi = E.fuelInfo(tx, {}); assert.equal(fi.price, 3.611); assert.ok(fi.live);
+  fi = E.fuelInfo(tx, { fuelPrice: 3.99 }); assert.equal(fi.price, 3.99); assert.equal(fi.estimated, false);
+  delete E.liveFuel.GC;
+  // Ownership uses the same price and labels the line Diesel
+  const o = E.ownership({ ...tx, mileage: 1, monthlyMiles: 7000, records: [] }, { mpg: 7 });
+  const line = o.lines.find((l) => l.key === 'fuel');
+  assert.equal(line.label, 'Diesel'); assert.equal(Math.round(line.value), Math.round(7000 / 7 * 3.45));
+});
+
+test('blank fuel type gives consistent diesel maintenance items on a Class 8', () => {
+  const ids = E.applicableItems({ class: 8, configs: [] }).map((i) => i.id);
+  assert.ok(ids.includes('fuelfilter') && ids.includes('dpf') && !ids.includes('sparkplugs'));
+});
+
+test('"Inspected OK" does not count as replacing a service item', () => {
+  const t = { ...cascadia, mileage: 470000, records: [
+    { id: 'a', date: '2026-01-01', mileage: 415000, items: ['oil'], kind: 'service' },
+    { id: 'b', date: '2026-11-01', mileage: 450000, items: ['oil'], kind: 'inspect' },
+  ] };
+  const oil = E.scheduleFor(t, new Date('2026-11-18')).find((r) => r.item.id === 'oil');
+  assert.equal(oil.last.id, 'a');
+  assert.equal(oil.dueMiles, 460000); // 450,000 + 25% of 40,000, not 490,000
+  assert.equal(oil.status, 'overdue');
+});
+
+test('record with no date and no mileage interval stays "No record", not "Up to date"', () => {
+  const t = { ...cascadia, records: [{ id: 'x', date: '', mileage: 400000, items: ['annual'] }] };
+  const annual = E.scheduleFor(t, new Date('2026-11-18')).find((r) => r.item.id === 'annual');
+  assert.equal(annual.status, 'unknown');
+});
+
+test('forecast keeps every occurrence of short-interval items', () => {
+  const t = { class: 2, fuel: 'Gasoline', duty: 'severe', mileage: 10000, monthlyMiles: 10000, zip: '75201', configs: [],
+    records: [{ id: 'r', date: '2026-11-01', mileage: 10000, items: ['tirerotate'] }] };
+  const n = E.forecast(t, 3, new Date('2026-11-18')).events.filter((e) => e.item.id === 'tirerotate').length;
+  assert.ok(n >= 7, `expected ~8 rotations in 30,000 mi at a 3,500 mi interval, got ${n}`);
+});
+
+test('assistant: "fuel filter cost" is a service-cost answer, fuel-use uses diesel price', () => {
+  const a = localAnswer(cascadia, 'How much does a fuel filter cost?');
+  assert.match(a, /Fuel filter replacement/);
+  const b = localAnswer(cascadia, 'How much diesel will I use driving 2,000 miles?');
+  assert.match(b, /of diesel/); assert.match(b, /TX state average/);
+});

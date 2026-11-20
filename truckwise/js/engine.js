@@ -2,7 +2,7 @@
 // they can be unit-tested in Node: `node --test truckwise/tests/`.
 import {
   CLASSES, MAINTENANCE, CATEGORIES, KNOWN_ISSUES, GENERIC_RISKS, CHECKUPS, DUTY_CYCLES,
-  LABOR_RATE, profileFor, regionForZip,
+  LABOR_RATE, profileFor, regionForZip, STATE_FUEL, OTHER_FUEL, FUEL_REFERENCE_DATE,
 } from './data.js';
 
 /* ------------------------------------------------------------------ */
@@ -214,7 +214,13 @@ export function scheduleFor(truck, today = new Date()) {
   return applicableItems(truck).map((item) => {
     const interval = intervalFor(item, truck);
     const months = monthsFor(item, truck);
-    const last = eventsFor(truck, item.id)[0] || null;
+    const events = eventsFor(truck, item.id);
+    // An "inspected - OK" entry fully resets inspection items. For replacement
+    // items it only defers the due point by 25% of the interval from the
+    // inspection mileage; it never counts as the service itself.
+    const lastService = item.kind === 'inspect' ? events[0] : events.find((e) => e.kind !== 'inspect');
+    const lastInspect = item.kind === 'inspect' ? null : events.find((e) => e.kind === 'inspect');
+    const last = lastService || null;
     const postpone = Number(truck.postponed?.[item.id]?.miles || 0);
     const postponeDays = Number(truck.postponed?.[item.id]?.days || 0);
     let dueMiles = null; let dueDate = null; let status; let noHistory = !last;
@@ -222,6 +228,17 @@ export function scheduleFor(truck, today = new Date()) {
     if (last) {
       if (interval) dueMiles = (Number(last.mileage) || current) + interval + postpone;
       if (months && last.date) dueDate = addMonths(last.date, months);
+      if (lastInspect && interval && Number(lastInspect.mileage) > Number(last.mileage)) {
+        dueMiles = Math.max(dueMiles, Number(lastInspect.mileage) + Math.round(interval * 0.25) + postpone);
+        if (months && lastInspect.date && dueDate) {
+          const deferred = addMonths(lastInspect.date, Math.max(1, Math.round(months * 0.25)));
+          if (deferred > dueDate) dueDate = deferred;
+        }
+      }
+    } else if (lastInspect && interval) {
+      // Only an inspection on record: due 25% of an interval after it.
+      noHistory = false;
+      dueMiles = Number(lastInspect.mileage) + Math.round(interval * 0.25) + postpone;
     } else if (truck.baseline?.[item.id]) {
       // Optional "last done at" mileage given during onboarding.
       noHistory = false;
@@ -232,7 +249,8 @@ export function scheduleFor(truck, today = new Date()) {
     const remaining = dueMiles != null ? dueMiles - current : null;
     const daysLeft = dueDate ? daysBetween(today, dueDate) : null;
 
-    if (noHistory) {
+    if (noHistory || (dueMiles == null && dueDate == null)) {
+      // No record, or a record without the date/mileage needed to compute a due point.
       status = 'unknown';
     } else {
       const soonMiles = interval ? Math.max(500, interval * 0.1) : 0;
@@ -247,7 +265,7 @@ export function scheduleFor(truck, today = new Date()) {
     const projectedMiles = dueMiles ?? (interval ? Math.ceil((current + 1) / interval) * interval : null);
 
     return {
-      item, interval, months, last, dueMiles, dueDate, remaining, daysLeft, status, noHistory,
+      item, interval, months, last, lastInspect, dueMiles, dueDate, remaining, daysLeft, status, noHistory,
       projectedMiles, postponed: postpone > 0 || postponeDays > 0, cost: costFor(item, truck),
     };
   }).sort((a, b) => STATUS[b.status].rank - STATUS[a.status].rank || (a.remaining ?? 1e12) - (b.remaining ?? 1e12));
@@ -296,11 +314,10 @@ export function forecast(truck, months = 12, today = new Date()) {
   const end = addMonths(today, months);
   const out = [];
   for (const s of scheduleFor(truck, today)) {
-    const seen = new Set();
+    let n = 0;
     const push = (miles, date, why) => {
-      const key = Math.round((date - today) / (DAY * 20));
-      if (seen.has(key)) return; seen.add(key);
-      out.push({ item: s.item, miles, date, cost: s.cost.total, basis: why, status: seen.size === 1 ? s.status : (s.status === 'unknown' ? 'unknown' : 'ok') });
+      out.push({ item: s.item, miles, date, cost: s.cost.total, basis: why, status: n === 0 || s.status === 'unknown' ? s.status : 'ok' });
+      n++;
     };
     if (s.interval) {
       let m = s.status === 'overdue' ? current : (s.projectedMiles ?? current);
@@ -323,7 +340,7 @@ export function forecast(truck, months = 12, today = new Date()) {
 export function knownIssues(truck) {
   const hay = [truck.make, truck.model, truck.engine, truck.engineMfr, truck.displacement, truck.fuel].filter(Boolean).join(' ');
   const specific = KNOWN_ISSUES.filter((k) => k.match.test(hay));
-  const diesel = /diesel/i.test(truck.fuel || '');
+  const diesel = fuelKind(truck) === 'diesel';
   const modern = (Number(truck.year) || 2020) >= 2007;
   const generic = GENERIC_RISKS.filter((g) => (!g.diesel || diesel) && (!g.modern || modern)).map((g) => {
     if (g.costKey) {
@@ -346,7 +363,7 @@ export function riskLevel(window, mileage) {
 }
 
 export function checkupsFor(truck) {
-  const diesel = /diesel/i.test(truck.fuel || '');
+  const diesel = fuelKind(truck) === 'diesel';
   const m = Number(truck.mileage) || 0;
   const scale = Number(truck.class) >= 7 ? 1 : 0.5;
   return CHECKUPS.filter((c) => (!c.diesel || diesel) && m >= c.minMiles * scale);
@@ -381,13 +398,55 @@ export function payoff(balance, aprPct, payment, extra = 0) {
   return { months, interest };
 }
 
+/* ------------------------------------------------------------------ */
+/* Fuel                                                                */
+/* ------------------------------------------------------------------ */
+// Live EIA weekly prices, keyed by region: { diesel, gas, period }. Set by the app.
+export const liveFuel = {};
+
+// One place decides what the truck burns. Blank fuel: Class 6+ is assumed
+// diesel (by far the most common), lighter trucks gasoline. Hybrids use gasoline.
+export function fuelKind(truck) {
+  const f = String(truck.fuel || '').toLowerCase();
+  if (f.includes('diesel')) return 'diesel';
+  if (f.includes('electric')) return 'electric';
+  if (f.includes('cng') || f.includes('natural')) return 'cng';
+  if (f.includes('propane') || f.includes('lpg')) return 'propane';
+  if (f.includes('gas') || f.includes('hybrid')) return 'gasoline';
+  return (Number(truck.class) || 8) >= 6 ? 'diesel' : 'gasoline';
+}
+
+// Price per unit of fuel plus where it came from.
+export function fuelInfo(truck, costs = {}) {
+  const kind = fuelKind(truck);
+  const region = regionForZip(truck.zip);
+  const base = {
+    kind,
+    label: { diesel: 'Diesel', gasoline: 'Gasoline', cng: 'CNG', propane: 'Propane', electric: 'Electricity' }[kind],
+    unit: OTHER_FUEL[kind]?.unit || 'gal',
+    econLabel: kind === 'electric' ? 'mi/kWh' : kind === 'cng' ? 'MPGe' : 'MPG',
+  };
+  const own = Number(costs.fuelPrice);
+  if (own > 0) return { ...base, price: own, source: 'your price', estimated: false };
+  if (kind === 'diesel' || kind === 'gasoline') {
+    const live = liveFuel[region.key];
+    const lp = live && (kind === 'diesel' ? live.diesel : live.gas);
+    if (lp > 0) return { ...base, price: lp, source: `EIA weekly average, ${region.label}, week of ${live.period}`, estimated: true, live: true };
+    const st = region.state && STATE_FUEL[region.state];
+    if (st) return { ...base, price: st[kind === 'diesel' ? 0 : 1], source: `${region.state} state average, reference as of ${FUEL_REFERENCE_DATE}`, estimated: true };
+    return { ...base, price: kind === 'diesel' ? region.diesel : region.gas, source: `${region.label} average, reference as of ${FUEL_REFERENCE_DATE}`, estimated: true };
+  }
+  return { ...base, price: OTHER_FUEL[kind].price, source: `U.S. average, reference as of ${FUEL_REFERENCE_DATE}`, estimated: true };
+}
+
 // Ownership breakdown. Inputs may be blank; estimates are flagged.
 export function ownership(truck, costs = {}, today = new Date()) {
   const miles = Number(costs.monthlyMiles) || monthlyMiles(truck);
   const region = regionForZip(truck.zip);
-  const diesel = /diesel/i.test(truck.fuel || 'diesel');
+  const fuel = fuelInfo(truck, costs);
+  const diesel = fuel.kind === 'diesel';
   const mpg = Number(costs.mpg) || defaultMpg(truck);
-  const price = Number(costs.fuelPrice) || (diesel ? region.diesel : region.gas);
+  const price = fuel.price;
   // Forecast at the mileage being modeled so maintenance scales with miles.
   const fc = forecast({ ...truck, monthlyMiles: miles }, 12, today);
   const lines = [];
@@ -398,24 +457,26 @@ export function ownership(truck, costs = {}, today = new Date()) {
   if (!pay && Number(costs.loanBalance) && Number(costs.loanTermLeft)) { pay = loanPayment(costs.loanBalance, costs.apr || 0, costs.loanTermLeft); payEst = true; }
   add('payment', 'Truck payment', pay || 0, payEst);
   add('insurance', 'Insurance', costs.insurance || 0, false);
-  add('fuel', diesel ? 'Diesel' : 'Fuel', monthlyFuelCost(miles, mpg, price), !costs.mpg || !costs.fuelPrice);
+  add('fuel', fuel.label, monthlyFuelCost(miles, mpg, price), !costs.mpg || fuel.estimated);
   add('maintenance', 'Maintenance reserve', Number(costs.maintenance) || (fc.total[0] + fc.total[1]) / 2 / 12, !costs.maintenance);
   add('tires', 'Tire reserve', Number(costs.tires) || defaultTireReserve(truck, miles), !costs.tires);
   add('permits', 'Registration & permits', Number(costs.permits) || (Number(costs.permitsAnnual) ? costs.permitsAnnual / 12 : defaultPermits(truck)), !costs.permits && !costs.permitsAnnual);
   add('tolls', 'Tolls & parking', costs.tolls || 0, false);
   add('other', 'Other expenses', costs.other || 0, false);
-  if (Number(costs.def) || (diesel && (Number(truck.year) || 0) >= 2010)) {
+  if (Number(costs.def) || (diesel && (Number(truck.year) || 2020) >= 2010)) {
     // DEF consumption is roughly 2–3% of diesel volume.
     const def = Number(costs.def) || (diesel ? (miles / mpg) * 0.025 * 3.5 : 0);
     if (def) add('def', 'DEF', def, !costs.def);
   }
   const total = lines.reduce((s, l) => s + l.value, 0);
-  return { lines, total, miles, mpg, price, perMile: miles ? total / miles : 0, annual: total * 12, region };
+  return { lines, total, miles, mpg, price, fuel, perMile: miles ? total / miles : 0, annual: total * 12, region };
 }
 
 export function defaultMpg(truck) {
   const c = Number(truck.class) || 8;
-  const diesel = /diesel/i.test(truck.fuel || 'diesel');
+  const kind = fuelKind(truck);
+  if (kind === 'electric') return c >= 8 ? 0.5 : c >= 6 ? 1 : c >= 4 ? 1.3 : 2;
+  const diesel = kind === 'diesel';
   if (c >= 8) return 6.8; if (c >= 7) return 7.5; if (c >= 6) return 9;
   if (c >= 4) return diesel ? 11 : 9; if (c === 3) return diesel ? 14 : 11;
   return diesel ? 18 : 15;

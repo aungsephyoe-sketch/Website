@@ -34,7 +34,7 @@ TruckWise is a static web app (HTML + vanilla JS modules, no build step). Open `
 
 - **Data is stored per browser** (localStorage + IndexedDB). There are no accounts and no sync yet. Users should use **Settings → Export backup**.
 - **Maintenance intervals and costs are typical values, not OEM specifications.** Every interval can be overridden, and the UI says so. For OEM schedules, a licensed data provider is needed (see `docs/ARCHITECTURE.md`).
-- **Fuel prices are regional reference values** with an as-of date. Users enter their actual pump price. Live ZIP-level and route pricing need a keyed commercial provider through a backend.
+- **Fuel prices**, in priority order: the user's own pump price; live **EIA weekly** regional averages when a free EIA API key is added in Settings; otherwise **state-average reference prices** for the truck's ZIP code (dated). Diesel trucks always use diesel prices, and a Class 6+ truck with no fuel type is treated as diesel. Station-level and along-the-route prices still need a commercial provider.
 - **Admin dashboard, subscriptions, team permissions, email/SMS** all need the backend described in `docs/ARCHITECTURE.md`.
 - The Claude API key (optional) is stored only in the user's browser. In the hosted version, AI calls go through the server.
 

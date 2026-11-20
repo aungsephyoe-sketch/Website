@@ -71,10 +71,13 @@ export const MILEAGE_PRESETS = [500, 1000, 2000, 3000, 5000, 8000, 10000];
 //   lg5 = class 4-5 gas
 //   md = medium diesel  (class 6-7, and class 4-5 non-pickup diesel)
 //   hd = heavy diesel   (class 8)
+// Blank fuel type: Class 6+ is assumed diesel, lighter trucks gasoline.
+// (engine.js fuelKind uses the same rule.)
+export const fuelOf = (t) => String(t.fuel || ((Number(t.class) || 8) >= 6 ? 'Diesel' : 'Gasoline'));
+
 export function profileFor(truck) {
   const cls = Number(truck.class) || 8;
-  const fuel = (truck.fuel || 'Diesel').toLowerCase();
-  const diesel = fuel.includes('diesel');
+  const diesel = fuelOf(truck).toLowerCase().includes('diesel');
   if (cls >= 8) return 'hd';
   if (cls >= 6) return diesel ? 'md' : 'lg5';
   if (cls >= 4) return diesel ? 'ld' : 'lg5';
@@ -88,9 +91,9 @@ export const PROFILE_LABELS = {
 // Base shop labor rate (USD/hr) before regional adjustment.
 export const LABOR_RATE = { lg: 140, lg5: 150, ld: 155, md: 165, hd: 175 };
 
-const isDiesel = (t) => (t.fuel || '').toLowerCase().includes('diesel');
-const isGasLike = (t) => !isDiesel(t) && (t.fuel || '').toLowerCase() !== 'electric';
-const isEV = (t) => (t.fuel || '').toLowerCase() === 'electric';
+const isDiesel = (t) => fuelOf(t).toLowerCase().includes('diesel');
+const isEV = (t) => fuelOf(t).toLowerCase() === 'electric';
+const isGasLike = (t) => !isDiesel(t) && !isEV(t);
 const notEV = (t) => !isEV(t);
 const modernDiesel = (t) => isDiesel(t) && (Number(t.year) || 2020) >= 2007; // DPF era
 const scrDiesel = (t) => isDiesel(t) && (Number(t.year) || 2020) >= 2010; // DEF/SCR era
@@ -572,6 +575,32 @@ export const REGIONS = {
   US: { label: 'U.S. average', diesel: 3.75, gas: 3.1, labor: 1.0 },
 };
 export const FUEL_REFERENCE_DATE = '2026-11-01';
+
+// State average retail prices (USD/gal): [diesel, regular gasoline].
+// REFERENCE VALUES compiled for this data version, not live quotes. The app
+// prefers, in order: the user's own pump price, live EIA weekly prices for the
+// truck's region (when an EIA key is set), then these state averages.
+export const STATE_FUEL = {
+  AL: [3.55, 2.85], AK: [4.40, 3.70], AZ: [3.95, 3.25], AR: [3.45, 2.80], CA: [5.20, 4.65], CO: [3.70, 3.00],
+  CT: [4.05, 3.15], DE: [3.75, 3.05], DC: [4.00, 3.30], FL: [3.75, 3.05], GA: [3.60, 2.95], HI: [5.40, 4.50],
+  ID: [3.85, 3.30], IL: [3.85, 3.30], IN: [3.80, 3.05], IA: [3.55, 2.90], KS: [3.45, 2.85], KY: [3.65, 2.95],
+  LA: [3.50, 2.80], ME: [4.00, 3.10], MD: [3.90, 3.10], MA: [4.10, 3.10], MI: [3.80, 3.10], MN: [3.65, 3.00],
+  MS: [3.45, 2.75], MO: [3.45, 2.85], MT: [3.75, 3.20], NE: [3.50, 2.95], NV: [4.20, 3.80], NH: [3.95, 3.05],
+  NJ: [3.85, 3.05], NM: [3.70, 3.00], NY: [4.15, 3.20], NC: [3.70, 2.95], ND: [3.60, 3.00], OH: [3.80, 3.00],
+  OK: [3.40, 2.75], OR: [4.30, 3.90], PA: [4.15, 3.20], RI: [4.05, 3.10], SC: [3.60, 2.90], SD: [3.55, 3.05],
+  TN: [3.55, 2.85], TX: [3.45, 2.75], UT: [3.80, 3.25], VT: [4.05, 3.20], VA: [3.75, 3.00], WA: [4.65, 4.20],
+  WV: [3.85, 3.05], WI: [3.65, 2.95], WY: [3.65, 3.10], PR: [3.60, 3.00],
+};
+
+// Other fuels: national reference prices.
+export const OTHER_FUEL = {
+  cng: { price: 3.10, unit: 'GGE', label: 'CNG' },
+  propane: { price: 3.00, unit: 'gal', label: 'Propane' },
+  electric: { price: 0.17, unit: 'kWh', label: 'Electricity' },
+};
+
+// EIA weekly retail price areas (duoarea codes) for each region.
+export const EIA_AREA = { NE: 'R1X', CA_: 'R1Y', LA_: 'R1Z', MW: 'R20', GC: 'R30', RM: 'R40', WC: 'R5XCA', CAL: 'SCA', US: 'NUS' };
 
 export function regionForZip(zip) {
   const st = stateFromZip(zip);

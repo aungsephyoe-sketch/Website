@@ -1,7 +1,7 @@
 import { store } from '../store.js';
-import { MILEAGE_PRESETS, regionForZip, FUEL_REFERENCE_DATE, MAINTENANCE } from '../data.js';
+import { MILEAGE_PRESETS, MAINTENANCE } from '../data.js';
 import {
-  ownership, loanPayment, totalInterest, payoff, monthlyFuelCost, costPerHour, breakEven, depreciation, forecast,
+  ownership, fuelInfo, loanPayment, totalInterest, payoff, monthlyFuelCost, costPerHour, breakEven, depreciation, forecast,
   compareQuote, costFor, applicableItems, defaultMpg, monthlyMiles, fmtMoney, fmtNum, fmtRange,
 } from '../engine.js';
 import { lives, actions, rerender, esc, icon, tabs, field, input, select, formData, num, toast } from '../ui.js';
@@ -25,8 +25,8 @@ const money = (name, label, v, hint = '') => field(label, `<span class="input-pr
 
 function monthlyTab(truck) {
   const c = truck.costs || {};
-  const reg = regionForZip(truck.zip);
-  const diesel = /diesel/i.test(truck.fuel || 'diesel');
+  const fi = fuelInfo(truck, {});
+  const diesel = fi.kind === 'diesel';
   const mm = c.monthlyMiles || monthlyMiles(truck);
   return `<div class="cost-layout">
     <form class="card card-pad stack" data-live="ownership" data-truck="${truck.id}">
@@ -35,9 +35,9 @@ function monthlyTab(truck) {
       <div class="chips chips-radio" role="radiogroup" aria-label="Monthly miles">${MILEAGE_PRESETS.map((m) => `<label class="chip"><input type="radio" name="mpreset" value="${m}" ${Number(mm) === m ? 'checked' : ''}><span>${fmtNum(m)}${m === 10000 ? '+' : ''}</span></label>`).join('')}</div>
       <div class="form-grid">
         ${field('Monthly miles', input('monthlyMiles', c.monthlyMiles ?? '', `type="number" min="0" placeholder="${fmtNum(monthlyMiles(truck))}"`))}
-        ${field('Average MPG', input('mpg', c.mpg ?? '', `type="number" min="0" step="0.1" placeholder="${defaultMpg(truck)} (typical)"`))}
-        ${field(`${diesel ? 'Diesel' : 'Fuel'} price ($/gal)`, input('fuelPrice', c.fuelPrice ?? '', `type="number" min="0" step="0.01" placeholder="${(diesel ? reg.diesel : reg.gas).toFixed(2)} (reference)"`),
-    `${esc(reg.label)} reference value, ${FUEL_REFERENCE_DATE} — enter today’s pump price. <a href="https://www.eia.gov/petroleum/gasdiesel/" target="_blank" rel="noopener">EIA weekly prices</a>`)}
+        ${field(`Average ${fi.econLabel}`, input('mpg', c.mpg ?? '', `type="number" min="0" step="0.1" placeholder="${defaultMpg(truck)} (typical)"`))}
+        ${field(`${fi.label} price ($/${fi.unit})`, input('fuelPrice', c.fuelPrice ?? '', `type="number" min="0" step="0.01" placeholder="${fi.price.toFixed(fi.unit === 'kWh' ? 3 : 2)}"`),
+    `Blank uses the ${esc(fi.source)}. Enter your pump price for exact numbers.${diesel || fi.kind === 'gasoline' ? ' <a href="#/settings">Turn on live weekly prices</a>' : ''}`)}
         ${field('Engine hours / month', input('hours', c.hours ?? '', 'type="number" min="0" placeholder="Optional"'))}
       </div>
       <h3 class="h4">Truck & financing</h3>
@@ -70,6 +70,7 @@ lives['ownership'] = (form, e) => {
   const t = store.truck(form.dataset.truck); if (!t) return;
   const d = formData(form);
   if (e?.target?.name === 'mpreset') { form.elements.monthlyMiles.value = d.mpreset; d.monthlyMiles = d.mpreset; }
+  if (e?.target?.name === 'monthlyMiles') form.querySelectorAll('input[name=mpreset]').forEach((r) => { r.checked = Number(r.value) === num(d.monthlyMiles); });
   const keys = ['monthlyMiles', 'mpg', 'fuelPrice', 'hours', 'purchasePrice', 'downPayment', 'loanBalance', 'loanPayment', 'apr', 'loanTermLeft', 'insurance', 'maintenance', 'tires', 'permitsAnnual', 'tolls', 'def', 'other'];
   const costs = Object.fromEntries(keys.map((k) => [k, num(d[k])]).filter(([, v]) => v != null && !Number.isNaN(v)));
   if (e) store.updateTruck(t.id, { costs });
@@ -82,13 +83,13 @@ lives['ownership'] = (form, e) => {
       <div class="kpis"><div><span class="label">Cost per mile</span><strong>${fmtMoney(o.perMile, 2)}</strong></div>
         <div><span class="label">Annual</span><strong>${fmtMoney(o.annual)}</strong></div>
         ${costs.hours ? `<div><span class="label">Per engine hour</span><strong>${fmtMoney(costPerHour(o.total, costs.hours), 2)}</strong></div>` : ''}
-        <div><span class="label">Fuel / month</span><strong>${fmtNum(o.miles / o.mpg)} gal</strong></div></div>
+        <div><span class="label">Fuel / month</span><strong>${fmtNum(o.miles / o.mpg)} ${o.fuel.unit}</strong></div></div>
       <table class="table table-compact breakdown"><tbody>${o.lines.filter((l) => l.value > 0 || ['payment', 'insurance'].includes(l.key)).map((l) => `<tr>
         <td>${esc(l.label)}${l.estimated ? ' <span class="est">est.</span>' : ''}${!l.value && ['payment', 'insurance'].includes(l.key) ? ' <span class="muted small">(not entered)</span>' : ''}</td>
         <td class="bar-cell"><span class="hbar" style="width:${(l.value / max) * 100}%"></span></td>
         <td class="num">${fmtMoney(l.value)}</td></tr>`).join('')}
         <tr class="total-row"><td>Total</td><td></td><td class="num">${fmtMoney(o.total)}</td></tr></tbody></table>
-      <p class="muted small">Fuel: ${fmtNum(o.miles)} mi ÷ ${o.mpg} MPG × ${fmtMoney(o.price, 2)}/gal. <span class="est">est.</span> = TruckWise estimate; enter your own value to replace it.</p>`;
+      <p class="muted small">${esc(o.fuel.label)}: ${fmtNum(o.miles)} mi ÷ ${o.mpg} ${o.fuel.econLabel} × ${fmtMoney(o.price, o.fuel.unit === 'kWh' ? 3 : 2)}/${o.fuel.unit} (${esc(o.fuel.source)}). <span class="est">est.</span> = TruckWise estimate; enter your own value to replace it.</p>`;
   }
   const sc = document.querySelector('[data-out="scenarios"]');
   if (sc) {
@@ -123,7 +124,7 @@ function toolsTab(truck) {
       nf('monthly', 'Monthly operating cost ($)', Math.round(o.total)) + nf('miles', 'Loaded + empty miles / month', o.miles) + nf('rate', 'Average revenue per mile ($)', 2.5) +
       nf('driver', 'Driver pay per mile ($)', 0) + nf('target', 'Target monthly profit ($)', 3000))}
     ${calc('fuel', 'Fuel consumption', 'Gallons and cost for any distance — and what better MPG is worth.',
-      nf('miles', 'Miles', o.miles) + nf('mpg', 'MPG', o.mpg) + nf('price', 'Price per gallon ($)', o.price.toFixed(2)))}
+      nf('miles', 'Miles', o.miles) + nf('mpg', 'MPG', o.mpg) + nf('price', `${o.fuel.label} price per ${o.fuel.unit} ($)`, o.price.toFixed(2)))}
     ${calc('reserve', 'Maintenance savings', 'Set a monthly savings goal for repairs.',
       nf('annual', 'Expected annual maintenance ($)', Math.round((fc.total[0] + fc.total[1]) / 2)) + nf('buffer', 'Unplanned-repair buffer (%)', 25) + nf('saved', 'Already saved ($)', 0))}
   </div>`;

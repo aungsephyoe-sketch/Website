@@ -11,7 +11,8 @@ const DEFAULT = () => ({
   trucks: [],
   activeId: null,
   shops: [],
-  settings: { theme: 'auto', leadMiles: 500, browserNotifications: false, claudeKey: '', plan: 'free' },
+  settings: { theme: 'auto', leadMiles: 500, browserNotifications: false, claudeKey: '', eiaKey: '', plan: 'free' },
+  fuelLive: {},
   dismissed: [],
 });
 
@@ -67,12 +68,12 @@ export const store = {
   },
   settings() { return state.settings; },
   setSetting(k, v) { state.settings[k] = v; save(); },
-  exportJson() { return JSON.stringify({ ...state, settings: { ...state.settings, claudeKey: '' } }, null, 2); },
+  exportJson() { return JSON.stringify({ ...state, settings: { ...state.settings, claudeKey: '', eiaKey: '' } }, null, 2); },
   importJson(text) {
     const s = JSON.parse(text);
     if (!Array.isArray(s.trucks)) throw new Error('Not a TruckWise backup file.');
-    const key = state.settings.claudeKey;
-    state = { ...DEFAULT(), ...s, settings: { ...DEFAULT().settings, ...(s.settings || {}), claudeKey: key } };
+    const key = state.settings.claudeKey; const eia = state.settings.eiaKey;
+    state = { ...DEFAULT(), ...s, settings: { ...DEFAULT().settings, ...(s.settings || {}), claudeKey: key, eiaKey: eia } };
     save();
   },
   reset() { state = DEFAULT(); save(); },

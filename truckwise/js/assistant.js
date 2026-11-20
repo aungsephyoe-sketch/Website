@@ -4,7 +4,7 @@
 // context Claude receives.
 import {
   scheduleFor, forecast, knownIssues, checkupsFor, costFor, fmtMoney, fmtNum, fmtRange,
-  monthlyFuelCost, defaultMpg, monthlyMiles, compareQuote, STATUS, riskLevel,
+  monthlyFuelCost, defaultMpg, monthlyMiles, compareQuote, STATUS, riskLevel, fuelInfo, fuelKind,
 } from './engine.js';
 import { MAINTENANCE, regionForZip, profileFor, PROFILE_LABELS, CHECKUPS } from './data.js';
 
@@ -57,7 +57,7 @@ export function localAnswer(truck, raw) {
   const q = raw.toLowerCase();
   const name = truckName(truck);
   const sched = scheduleFor(truck);
-  const diesel = /diesel/i.test(truck.fuel || '');
+  const diesel = fuelKind(truck) === 'diesel';
   const region = regionForZip(truck.zip);
 
   // Safety-critical symptoms first.
@@ -78,12 +78,15 @@ export function localAnswer(truck, raw) {
   }
 
   // Fuel use for N miles
-  if (/(diesel|fuel|gas(oline)?|gallons).*(use|burn|cost|need)|how much (diesel|fuel|gas)/.test(q)) {
+  // (Excludes fuel-system parts like "fuel filter cost", which are handled as service costs below.)
+  if (/(diesel|fuel|gas(oline)?|gallons|electricity|charging).*(use|burn|cost|need|price)|how much (diesel|fuel|gas)/.test(q)
+    && !/filter|injector|pump|tank|line|system|particulate|exhaust fluid|def\b/.test(q)) {
     const miles = parseNumber(q) || monthlyMiles(truck);
     const mpg = Number(truck.costs?.mpg) || defaultMpg(truck);
-    const price = Number(truck.costs?.fuelPrice) || (diesel ? region.diesel : region.gas);
-    const cost = monthlyFuelCost(miles, mpg, price);
-    return `Driving **${fmtNum(miles)} miles** at **${mpg} MPG** uses about **${fmtNum(miles / mpg)} gallons**.\n\nAt ${fmtMoney(price, 2)}/gal that’s about **${fmtMoney(cost)}**.\n\nFormula: miles ÷ MPG × price per gallon. ${truck.costs?.fuelPrice ? '' : `The price is a reference value for the ${region.label} region — set your real pump price on the Costs page.`}`;
+    const fi = fuelInfo(truck, truck.costs || {});
+    const cost = monthlyFuelCost(miles, mpg, fi.price);
+    const units = fi.unit === 'gal' ? 'gallons' : fi.unit;
+    return `Driving **${fmtNum(miles)} miles** at **${mpg} ${fi.econLabel}** uses about **${fmtNum(miles / mpg)} ${units}** of ${fi.label.toLowerCase()}.\n\nAt ${fmtMoney(fi.price, fi.unit === 'kWh' ? 3 : 2)}/${fi.unit} (${fi.source}) that’s about **${fmtMoney(cost)}**.\n\nFormula: miles ÷ ${fi.econLabel} × price.${fi.source === 'your price' ? '' : ' Enter your real pump price on the Costs page for an exact number.'}`;
   }
 
   // Quote check

@@ -105,3 +105,27 @@ export function claudeErrorMessage(e) {
   if (e?.name === 'APIConnectionError' || /fetch|network/i.test(e?.message || '')) return 'Could not reach the AI service. Check your connection.';
   return e?.message || 'Something went wrong.';
 }
+
+/* ------------------------------------------------------------------ */
+/* Live fuel prices: U.S. EIA weekly retail prices (free API key)      */
+/* ------------------------------------------------------------------ */
+// Diesel: EMD_EPD2D_PTE_<area>_DPG, regular gasoline: EMM_EPMR_PTE_<area>_DPG.
+// Docs: https://www.eia.gov/opendata/  (register for a free key)
+export async function fetchEiaWeekly(apiKey, area) {
+  const series = { diesel: `EMD_EPD2D_PTE_${area}_DPG`, gas: `EMM_EPMR_PTE_${area}_DPG` };
+  const url = 'https://api.eia.gov/v2/petroleum/pri/gnd/data/?' + new URLSearchParams([
+    ['api_key', apiKey], ['frequency', 'weekly'], ['data[0]', 'value'],
+    ['facets[series][]', series.diesel], ['facets[series][]', series.gas],
+    ['sort[0][column]', 'period'], ['sort[0][direction]', 'desc'], ['length', '10'],
+  ]);
+  const data = await getJson(url);
+  if (data?.error) throw new Error(String(data.error));
+  const rows = data?.response?.data || [];
+  const latest = (id) => rows.find((r) => r.series === id);
+  const d = latest(series.diesel); const g = latest(series.gas);
+  if (!d && !g) throw new Error('No EIA prices returned for this region.');
+  return {
+    diesel: d ? Number(d.value) : null, gas: g ? Number(g.value) : null,
+    period: (d || g).period, fetchedAt: new Date().toISOString(),
+  };
+}
